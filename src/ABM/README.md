@@ -57,13 +57,13 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
 
   We distinguish over four thousand different market states in the simulation, a bit is "set" if it is 0(no signal) or 1(signal), nothing otherwise:
   
-  - `"All_Fund_Ex"` : `bit1 = 1, bit2 = 1, bit3 = 1, bit4 = 1, bit5 = 1, bit6 = 1, bit7 = 0, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`,
-  - `"All_Tech_Ex"` : `bit1 = 0, bit2 = 0, bit3 = 0, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 1, bit9 = 1, bit10 = 1, bit11 = 1, bit12 = 0`,
-  - `"Rand_Ex"` : `bit1 = 1, bit2 = 1, bit3 = nothing, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`,
+  - `"All_Fund_Ex"` : `bit1 = 1, bit2 = 1, bit3 = 1, bit4 = 1, bit5 = 1, bit6 = 1, bit7 = 0, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`
+  - `"All_Tech_Ex"` : `bit1 = 0, bit2 = 0, bit3 = 0, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 1, bit9 = 1, bit10 = 1, bit11 = 1, bit12 = 0`
+  - `"Rand_Ex"` : `bit1 = 1, bit2 = 1, bit3 = nothing, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`
 
 3. An agent struct (`Trader`) defines the agent variables:
   - `id`: unique identifier for each agent
-  - `pos`: defines agents' position on a grid space as a Tuple{Int,Int} (**To do: Investigate this**)
+  - `pos`: defines agents' position on a grid space as a Tuple{Int,Int} (**To do: Investigate this, relate to wealth?**)
   - `predictors` : number of conditioned predictors each agent employs at a time (default = `100`)
   - `predict_acc`: the accuracy of agent i's jth predictor (most accurate is used); updated each time predictor j is active 
   - `fitness_j`: fitness measure for selecting which predictors for recombination in genetic algorithm
@@ -88,23 +88,29 @@ The initialisation and stepping functions of the model are described in [`ABM/mo
 The ABM model is defined by the `init_model` function.
 
 Whatever the environment for market behavior as described by the `regime` property, the model is composed of the following elements:
- - `Trader` : the agent struct (see [Data Structure, 3](#Data-structure)); 
+ - `Trader` : the agent struct (see [Data Structure, 3](#Data-structure));
+ - `State`  : the market struct (see [Data Structure, 2](#Data-structure)); 
  - `space`: agents are located on a periodic 10x10 GridSpace; 
  - `properties` : the parameters of the model (see [Data Structure, 1](#Data-structure));
  - `scheduler` : agents are activated at random (`Schedulers.randomly`); 
  - `rng` : stores a seeded random number generator to be used in the model.
 
-The elements of the value type distribution (`model.dist`) have been defined to sum up to 1. 
+The elements of the value type distribution (`model.dist`) have been defined to sum up to 1. (**To do: Investigate this**)
+The model is ran for an initial warm-up period (determined by `X`) before the outputs are recorded for analysis. (**To do: Implement this**)
 
 #### Initialising Agents
 
 - `init_agents!`: 
 
-  This function defines the creation of agents at step 0.
-  At this stage of the simulations, it is assumed that each agent devotes the same level of confidence to each predictor...
-  Agents predictions of next periods price and dividend...
-  Agents demand for holding shares of risky asset...
+  This function defines the creation of agents at step 0. 
+  At this stage of the simulations, it is assumed that each agent devotes the same level of confidence to each predictor. 
+  Agents create and instantiate all parameters used in the step function.  
   Agents also form their predictors (`evolution.init_predictors`).
+
+  - `init_state!`: 
+
+  This function defines the creation of the market state at step 0.
+  The initial `price` and `dividend` is initialized using the parameters from `properties`. (**To do: Implement this**)
 
 - `evolution.init_predictors`: 
 
@@ -127,19 +133,26 @@ The elements of the value type distribution (`model.dist`) have been defined to 
 
 What happens in the model during each step is described in the `model_step!` function, which includes all the remaining functions defined in the file. Thanks to this specification, we ensure that each action is sequentially executed. (**To do: Need to check order of these actions**)
 
+The stepping function is split into two sections, the initial warm-up section, followed by the steady-state section. All of the following steps are performed in both sections, but the generated dataframes are only collected during the steady-state section. 
+
 During each step of the simulation, all agents are randomly activated to act according to the following specifications:
 
-1. Do something using predictor accuracy, fitness measure, and `δ` to determine if selected for recombination.... ;
-2. Update their error variance `σ_i` .... ;
-3. Undergo the genetic algorithm (`evolution.GA!`) or not based on the aformentioned factors....
-  To avoid any bias from the order of time choices, we fully randomised this decision order for each agent at each step.... (**Update this section**)
+1. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_output!`). 
+2. Sum the total demand and equate it to number of shares issued to determine and broadcast the new clearing price and dividend (i.e., simulate market specialist and price formation mechanism). Then perform following conditional action: 
+  If simulation time < warm_up_t: (**To do: Implement this**)
+    Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
+  Else:
+    Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
+    Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step.     
+3. Update individual agents properties (i.e., assets held, cumulative wealth) (`evolution.update_rewards!`).
 
 After these agent actions, some model calculations are done at the end of the current model step. Note that not all of these variables are observed by the agents and thus, some do not affect agent behaviour at all. 
 
 4. Update the predictor accuracy and fitness measure (`evolution.update_predict_acc!` and `evolution.update_fitness_j!`).
-5. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_output!`). (**Move to randomized section....?**) 
-6. Sum the total demand and equate it to number of shares issued to determine the clearing price (i.e., simulate market specialist and price formation mechanism). Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step. 
-7. Update individual agents properties (i.e., assets held, cumulative wealth) (`evolution.update_rewards!`).
+5. Do something using predictor accuracy, fitness measure, and `δ` to determine if selected for recombination.... ; 
+6. Update their error variance `σ_i` .... ;
+7. Undergo the genetic algorithm (`evolution.GA!`) or not based on the aformentioned factors....
+  To avoid any bias from the order of time choices, we fully randomised this decision order for each agent at each step.... (**Update this section**)
 
 
 The simulations of the model are run by executing the [`ABM/run.jl`](run.jl) file. 
