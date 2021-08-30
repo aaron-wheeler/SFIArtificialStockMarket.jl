@@ -10,8 +10,9 @@ The SFI artificial market is a simple model of an asset market that assumes hete
 Multiple data structures have been defined in `ABM/data_struct.jl` to organise the different variables and their domains according to the theoretical outline.
 
 1. A properties struct (`ModelProperties`) defines several model parameters:
-  - `numagents` : number of agents in the model (default = `25`)
+  - `num_agents` : number of agents in the model (default = `25`)
   - `λ` : degree of agents' risk-aversion (default = `0.5`)
+  - `num_predictors` : number of conditioned predictors each agent employs at a time (default = `100`)
   - `bit1`: fundamental bit; Price * interest/dividend > 0.25 (`State.bit1`)
   - `bit2`: fundamental bit; Price * interest/dividend > 0.50 (`State.bit2`)
   - `bit3`: fundamental bit; Price * interest/dividend > 0.75 (`State.bit3`)
@@ -36,6 +37,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `ε` : gaussian noise term for dividend process (`~N(0,σ_ε)`)
   - `σ_ε` : error-variance for dividend process (default = `0.0743`)
   - `σ_pd` : price-plus-dividend variance in the h.r.e.e. (default = `4.0`)
+  - `M`: constant for recombination fitness measure (default = `0.0`) (`Arbitrary`)
+  - `C`: cost levied for fitness measure specificity (default = `0.005`)
   - `init_price` : initial price for risky asset (default = `X`) (**To do: Replace with min/max?**)
   - `init_dividend` : initial dividend for risky asset (default = `X`) (**To do: Replace with min/max?**)
   - `init_cash` : initial cash balance of each agent (default = `20000.0`)
@@ -59,30 +62,27 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `volatility` : volatility vector calculated using clearing price of risky asset; updated at time t
   - `technical_activity` : vector that stores the number of set technical trading bits; updated at time t 
 
-  We distinguish over four thousand different market states in the simulation, a bit is "set" if it is 0(no signal) or 1(signal), nothing otherwise:
+  We distinguish over four thousand different market states in the simulation, a bit is "set" if it is `0` (no signal) or `1` (signal), `nothing` otherwise. For example:
   
-  - `"All_Fund_Ex"` : `bit1 = 1, bit2 = 1, bit3 = 1, bit4 = 1, bit5 = 1, bit6 = 1, bit7 = 0, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`
-  - `"All_Tech_Ex"` : `bit1 = 0, bit2 = 0, bit3 = 0, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 1, bit9 = 1, bit10 = 1, bit11 = 1, bit12 = 0`
-  - `"Rand_Ex"` : `bit1 = 1, bit2 = 1, bit3 = nothing, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`
+  - `"All_Fund_Ex"` : Only fundamental bits; `bit1 = 1, bit2 = 1, bit3 = 1, bit4 = 1, bit5 = 1, bit6 = 1, bit7 = 0, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`, i.e. a state where the market Price * interest/dividend ratio is larger than 1.125 and the Price is less than the 5-period MA
+  - `"All_Tech_Ex"` : Only technical bits; `bit1 = 0, bit2 = 0, bit3 = 0, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 1, bit9 = 1, bit10 = 1, bit11 = 1, bit12 = 0`, i.e. a state where the market Price * interest/dividend ratio is smaller than 0.25 and the Price is more than the 500-period MA
+  - `"Pred_Ex"` : An example predictor; `bit1 = 1, bit2 = 1, bit3 = nothing, bit4 = 0, bit5 = 0, bit6 = 0, bit7 = 1, bit8 = 0, bit9 = 0, bit10 = 0, bit11 = 1, bit12 = 0`, i.e. this predictor would match a state with a Price * interest/dividend ratio that is larger than 0.50 and smaller than 0.875 and a Price that is more than the 5-period MA and less than the 10-period MA
 
 3. An agent struct (`Trader`) defines the agent variables:
   - `id`: unique identifier for each agent
   - `relative_cash`: each agent's relative cash held (**To do: Also include profit, wealth?**)
   - `pos`: defines agents' position on a grid space as a Tuple{Int,Int} (**To do: For visualization, relate to wealth or holding status?**)
-  - `predictors` : number of conditioned predictors each agent employs at a time (default = `100`)
   - `predict_acc`: the accuracy of agent i's jth predictor (most accurate is used); updated each time predictor j is active 
   - `fitness_j`: fitness measure for selecting which predictors for recombination in genetic algorithm
-  - `expected_pd`: agent i's prediction of next period's price and dividend; linear combination of current price and dividend
+  - `expected_pd`: agent i's prediction j of next period's price and dividend; linear combination of current price and dividend
   - `demand_xi`: an agent's demand for holding shares of risky asset
   - `σ_i`: an agent's forcast of the conditional variance of price-plus-dividend
-  - `δ` : degree of deviation from learning frequency (low δ leads to less deviation)
+  - `δ` : degree of deviation from learning frequency (term used for GA selection) (**To do: determine if this is needed**)
   - `a`: linear forecasting parameter; uniform about [`0.7, 1.2`] 
   - `b`: linear forecasting parameter; uniform about [`-10.0, 19.002`]
   - `JX`: crossover for genetic algorithm (probability of recombination)
-  - `θ`: accuracy-updating parameter for predictor 
-  - `M`: constant for recombination fitness measure (default = `0.0`) (`Arbitrary`)
+  - `τ`: relevant horizon length for accuracy-updating parameter for predictor 
   - `s`: fitness measure specificity; number of bits that are set in the predictor's condition array 
-  - `C`: cost levied for fitness measure specificity (default = `0.005`)
 
 ### The model 
 
@@ -95,7 +95,7 @@ The ABM model is defined by the `init_model` function.
 Whatever the environment for market behavior as described by the `regime` property, the model is composed of the following elements:
  - `Trader` : the agent struct (see [Data Structure, 3](#Data-structure));
  - `State`  : the market struct (see [Data Structure, 2](#Data-structure)); 
- - `space`: agents are located on a periodic 10x10 GridSpace; 
+ - `space`: agents are located on a periodic 10x10 GridSpace; (**To do: Update**)
  - `properties` : the parameters of the model (see [Data Structure, 1](#Data-structure));
  - `scheduler` : agents are activated at random (`Schedulers.randomly`); 
  - `rng` : stores a seeded random number generator to be used in the model.
@@ -130,8 +130,8 @@ The model is ran for an initial warm-up period (determined by `warm_up_t`) and t
 - `evolution.GA!`:
 
   According to the exploration rate of the market regime (`model.regime`), the genetic algorithm will be invoked: 
-  - `Complex` : every `κ = 250` periods on average; `JX =  0.1, θ = 1/75`
-  - `Rational` : every `κ = 1000` periods on average;  `JX =  0.3, θ = 1/150`
+  - `Complex` : every `κ = 250` periods on average; `JX =  0.1, τ = 75`
+  - `Rational` : every `κ = 1000` periods on average;  `JX =  0.3, τ = 150`
 
 #### Stepping function
 
