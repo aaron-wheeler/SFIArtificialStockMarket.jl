@@ -6,7 +6,7 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 Base.@kwdef mutable struct ModelProperties
     num_agents::Int = 25
     λ::Float64 = 0.5
-    predictors::Int = 100
+    num_predictors::Int = 100
     bit1::Int
     bit2::Int
     bit3::Int
@@ -39,7 +39,7 @@ Define parameter structure of states.
 
 Please use `ABM/README.md` as a reference for what each field of this struct does.
 """
-struct State # This must be a mutable struct filled with vectors like one below... 
+struct State # Must this be a mutable struct filled with vectors like one below...? 
     bit1::Int
     bit2::Int
     bit3::Int
@@ -68,6 +68,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     id::Int
     relative_cash::Float64 = init_cash #(**To do: Investigate this, set equal to zero?**)
     pos::Dims{2}
+    predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
     expected_pd::Vector{Float64} = []

@@ -27,6 +27,25 @@ function init_model(; seed::UInt32, env, properties...)
     end
 end
 
+function init_model(; seed::UInt32, env, properties...)
+    if env in ("Complex", "Rational")
+        space = GridSpace((10,10), periodic = true, metric = :euclidean )  # TODO: Investigate this
+        model = ABM(
+            Trader, 
+            space; # Where to add 'State' structure? 
+            properties = ModelProperties(; env, properties...), 
+            scheduler = Schedulers.randomly, # TODO: Investigate this
+            rng = MersenneTwister(seed) # TODO: Investigate this
+        )
+        model.dist = cumsum(model.dist)
+        init_agents!(model)
+        return model
+    else
+        error("Given env '$(env)' is not implemented in the model.
+            Please verify the integrity of the provided `env` value.")
+    end
+end
+
 """
 Initialize and add agents.
 """
