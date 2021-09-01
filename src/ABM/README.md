@@ -70,7 +70,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
 
 3. An agent struct (`Trader`) defines the agent variables:
   - `id`: unique identifier for each agent
-  - `relative_cash`: each agent's relative cash held (**To do: Also include profit, wealth?**)
+  - `relative_cash`: each agent's relative cash held (**To do: Also include profit, wealth (would require position var)?**)
   - `pos`: defines agents' position on a grid space as a Tuple{Int,Int} (**To do: For visualization, relate to wealth or holding status?**)
   - `predictors` : The set of evolving conditional predictors each agent uses to forecast price and dividend
   - `predict_acc`: the accuracy of agent i's jth predictor (most accurate is used); updated each time predictor j is active 
