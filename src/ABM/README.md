@@ -26,7 +26,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit11`: experimental control; always on: 1 (`State.bit11`)
   - `bit12`: experimental control; always off: 0 (`State.bit12`)
   - `warm_up_t` : number of time steps for initial warm-up period of model (default = `250,000`)
-  - `κ` : frequency of learning for agents across the simulation; average number of time steps determined by market regime
+  - `recorded_t` :
+  - `κ` : frequency of learning for agents across the simulation; average number of time steps determined by market regime (**TODO: make `k`**)
   - `regime` : the market regime can be either 
     - `Complex`, i.e. all agents continually explore prediction space at fast (realistic) rates;
     - `Rational`, i.e. all agents continually explore prediction space at slow rates;
@@ -37,6 +38,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `ε` : gaussian noise term for dividend process (`~N(0,σ_ε)`)
   - `σ_ε` : error-variance for dividend process (default = `0.0743`)
   - `σ_pd` : price-plus-dividend variance in the h.r.e.e. (default = `4.0`)
+  - `δ_dist` : distribution of time step intervals for random GA selection (mean = `k`)
+  - `k_var` :  
   - `M`: constant for recombination fitness measure (default = `0.0`) (`Arbitrary`)
   - `C`: cost levied for fitness measure specificity (default = `0.005`)
   - `init_price` : initial price for risky asset (default = `X`) (**To do: Replace with min/max?**)
@@ -78,7 +81,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `expected_pd`: agent i's prediction j of next period's price and dividend; linear combination of current price and dividend
   - `demand_xi`: an agent's demand for holding shares of risky asset
   - `σ_i`: an agent's forcast of the conditional variance of price-plus-dividend
-  - `δ` : degree of deviation from learning frequency (term used for GA selection) (**To do: determine if this is needed**)
+  - `δ` : an agent's asynchronous sequence of learning frequency (term used for GA selection)
   - `a`: linear forecasting parameter; uniform about [`0.7, 1.2`] 
   - `b`: linear forecasting parameter; uniform about [`-10.0, 19.002`]
   - `JX`: crossover for genetic algorithm (probability of recombination)

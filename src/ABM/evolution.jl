@@ -33,21 +33,15 @@ end
 """
     `init_learning() → `
 
-Construct each agent's `` coupled to unique `id`.
+Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` coupled to unique `id`.
 """
 
-function init_learning(num_predictors, predictors)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
-    predictors = Vector{Any}(undef, 0) # Put this step somewhere else?
-    for i in 1:(length(num_predictors)-1)
-        heterogeneity = Vector{Any}(undef, 3)
-        heterogeneity[1] = rand(Uniform(0.7,1.2))
-        heterogeneity[2] = rand(Uniform(-10.0, 19.002))
-        heterogeneity[3] = σ_pd
-        bit_vec = Vector{Any}(undef, 12)
-        sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec)
-        bit_vec = vcat(heterogeneity, bit_vec)
-        predictors = push!(predictors, bit_vec)
-    end
+function init_learning(predict_acc, fitness_j, δ, )   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
+    predict_acc = Vector{Any}(undef, 0) # Put this step somewhere else?
+    fitness_j = Vector{Any}(undef, 0) # Put this step somewhere else?
+    δ = Vector{Any}(undef, 40)
+    
+
 end
 
 
