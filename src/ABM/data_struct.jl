@@ -20,7 +20,8 @@ Base.@kwdef mutable struct ModelProperties
     bit11::Int
     bit12::Int
     warm_up_t::Int
-    κ::Int
+    recorded_t::Int
+    k::Int
     regime::String
     num_shares::Int = 25
     r::Float64 = 0.1
@@ -29,6 +30,8 @@ Base.@kwdef mutable struct ModelProperties
     ε::Float64
     σ_ε::Float64 = 0.0743
     σ_pd::Float64 = 4.0
+    δ_dist::Vector{Int} = []
+    k_var::Int = 40
     M::Float64 = 0.0
     C::Float64 = 0.005
     init_cash::Float64 = 20000.0

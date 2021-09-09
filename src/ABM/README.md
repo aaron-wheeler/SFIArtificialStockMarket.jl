@@ -27,7 +27,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit12`: experimental control; always off: 0 (`State.bit12`)
   - `warm_up_t` : number of time steps for initial warm-up period of model (default = `250,000`)
   - `recorded_t` :
-  - `κ` : frequency of learning for agents across the simulation; average number of time steps determined by market regime (**TODO: make `k`**)
+  - `k` : frequency of learning for agents across the simulation; average number of time steps determined by market regime 
   - `regime` : the market regime can be either 
     - `Complex`, i.e. all agents continually explore prediction space at fast (realistic) rates;
     - `Rational`, i.e. all agents continually explore prediction space at slow rates;
@@ -39,7 +39,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `σ_ε` : error-variance for dividend process (default = `0.0743`)
   - `σ_pd` : price-plus-dividend variance in the h.r.e.e. (default = `4.0`)
   - `δ_dist` : distribution of time step intervals for random GA selection (mean = `k`)
-  - `k_var` :  
+  - `k_var` : total deviation of k values for heterogeneous and asynchronous agents (default = `40`)
   - `M`: constant for recombination fitness measure (default = `0.0`) (`Arbitrary`)
   - `C`: cost levied for fitness measure specificity (default = `0.005`)
   - `init_price` : initial price for risky asset (default = `X`) (**To do: Replace with min/max?**)
@@ -129,13 +129,13 @@ The model is ran for an initial warm-up period (determined by `warm_up_t`) and t
 
 - `evolution.init_learning`: 
   
-  Each agent will replace the lowest performing 20% of predictors at random intervals, asynchronously across agents, every `κ` time steps on average based on the market regime. The predictors are replaced by using uniform crossover and mutation in the genetic algorithm (`evolution.GA!`). Each agent type will have a different deviation parameter (`δ`) to ensure learning does not occur for all agents in certain periods. The function defines a dictionary which associates to each `predictors` symbol the predictor accuracy (`predict_acc`), fitness measure (`fitness_j`), and respective `δ`. 
+  Each agent will replace the lowest performing 20% of predictors at random intervals, asynchronously across agents, every `k` time steps on average based on the market regime. The predictors are replaced by using uniform crossover and mutation in the genetic algorithm (`evolution.GA!`). Each agent type will have a different deviation parameter (`δ`) to ensure learning does not occur for all agents in certain periods. The function defines a dictionary which associates to each `predictors` symbol the predictor accuracy (`predict_acc`), fitness measure (`fitness_j`), and respective `δ`. 
 
 - `evolution.GA!`:
 
   According to the exploration rate of the market regime (`model.regime`), the genetic algorithm will be invoked: 
-  - `Complex` : every `κ = 250` periods on average; `JX =  0.1, τ = 75`
-  - `Rational` : every `κ = 1000` periods on average;  `JX =  0.3, τ = 150`
+  - `Complex` : every `k = 250` periods on average; `JX =  0.1, τ = 75`
+  - `Rational` : every `k = 1000` periods on average;  `JX =  0.3, τ = 150`
 
 #### Stepping function
 
