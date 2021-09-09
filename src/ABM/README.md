@@ -26,7 +26,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit11`: experimental control; always on: 1 (`State.bit11`)
   - `bit12`: experimental control; always off: 0 (`State.bit12`)
   - `warm_up_t` : number of time steps for initial warm-up period of model (default = `250,000`)
-  - `recorded_t` :
+  - `recorded_t` : number of time steps for actual recorded period of model (default = `10,000`)
   - `k` : frequency of learning for agents across the simulation; average number of time steps determined by market regime 
   - `regime` : the market regime can be either 
     - `Complex`, i.e. all agents continually explore prediction space at fast (realistic) rates;
@@ -38,7 +38,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `ε` : gaussian noise term for dividend process (`~N(0,σ_ε)`)
   - `σ_ε` : error-variance for dividend process (default = `0.0743`)
   - `σ_pd` : price-plus-dividend variance in the h.r.e.e. (default = `4.0`)
-  - `δ_dist` : distribution of time step intervals for random GA selection (mean = `k`)
+  - `δ_dist` : distribution of time step intervals for random GA selection (mean = `k`) # **TODO: Remove this?**
   - `k_var` : total deviation of k values for heterogeneous and asynchronous agents (default = `40`)
   - `M`: constant for recombination fitness measure (default = `0.0`) (`Arbitrary`)
   - `C`: cost levied for fitness measure specificity (default = `0.005`)

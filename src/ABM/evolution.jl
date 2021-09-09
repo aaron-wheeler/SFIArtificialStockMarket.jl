@@ -26,6 +26,7 @@ function init_predictors(num_predictors, predictors)   # Add an identifier? Sepe
         bit_vec = vcat(heterogeneity, bit_vec)
         predictors = push!(predictors, bit_vec)
     end
+    #return predictors
 end
 
 # Add step for "Default" predictor.....
@@ -36,12 +37,11 @@ end
 Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` coupled to unique `id`.
 """
 
-function init_learning(predict_acc, fitness_j, δ, k_var, ...)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
-    predict_acc = Vector{Any}(undef, 0) # Put this step somewhere else?
+function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
+    predict_acc = Vector{Any}(undef, 0) # Put this step somewhere else? How to initialize this? return?
     fitness_j = Vector{Any}(undef, 0) # Put this step somewhere else?
-    δ = Vector{Any}(undef, 40)
-    
-
+    δ = Vector{Any}(undef, N)
+    sample!(δ_dist, δ; replace=false, ordered=false)
 end
 
 

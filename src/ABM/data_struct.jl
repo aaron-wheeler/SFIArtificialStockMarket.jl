@@ -19,9 +19,9 @@ Base.@kwdef mutable struct ModelProperties
     bit10::Int
     bit11::Int
     bit12::Int
-    warm_up_t::Int
-    recorded_t::Int
-    k::Int
+    warm_up_t::Int = 250000
+    recorded_t::Int = 10000
+    k::Int # **TODO: How to make this work?**
     regime::String
     num_shares::Int = 25
     r::Float64 = 0.1
@@ -30,7 +30,7 @@ Base.@kwdef mutable struct ModelProperties
     ε::Float64
     σ_ε::Float64 = 0.0743
     σ_pd::Float64 = 4.0
-    δ_dist::Vector{Int} = []
+    δ_dist::Vector{Int} = [] # **TODO: Remove this?**
     k_var::Int = 40
     M::Float64 = 0.0
     C::Float64 = 0.005
