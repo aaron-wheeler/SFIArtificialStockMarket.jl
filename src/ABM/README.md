@@ -28,15 +28,15 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `warm_up_t` : number of time steps for initial warm-up period of model (default = `250,000`)
   - `recorded_t` : number of time steps for actual recorded period of model (default = `10,000`)
   - `k` : frequency of learning for agents across the simulation; average number of time steps determined by market regime 
-  - `regime` : the market regime can be either 
+  - `regime` : the market regime can be either    # **TODO: Remove this and just change params to see diff instead?**
     - `Complex`, i.e. all agents continually explore prediction space at fast (realistic) rates;
     - `Rational`, i.e. all agents continually explore prediction space at slow rates;
   - `num_shares` : number of shares of risky asset (default = `25`)
   - `r` : constant interest rate of risk-free bond (default = `0.1`)
   - `ρ` : autoregressive parameter for dividend process (default = `0.95`) 
   - `d̄` : baseline constant for dividend process (default = `10.0`)
-  - `ε` : gaussian noise term for dividend process (`~N(0,σ_ε)`)
-  - `σ_ε` : error-variance for dividend process (default = `0.0743`)
+  - `ε` : gaussian noise term for dividend process (`~N(0,σ_ε)`) 
+  - `σ_ε` : error-variance for dividend process (default = `0.0743`) # **TODO: Look into this**
   - `σ_pd` : price-plus-dividend variance in the h.r.e.e. (default = `4.0`)
   - `δ_dist` : distribution of time step intervals for random GA selection (mean = `k`) # **TODO: Remove this?**
   - `k_var` : total deviation of k values for heterogeneous and asynchronous agents (default = `40`)
@@ -47,6 +47,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `init_cash` : initial cash balance of each agent (default = `20000.0`)
 
 2. A State struct (`State`) defines the varying parameters of the applied simulation treatments:
+  - `t`: current time step in simulation
   - `bit1`: Price * interest/dividend > 0.25 , set to `1` signals occurence of state 
   - `bit2`: Price * interest/dividend > 0.50 , set to `1` signals occurence of state 
   - `bit3`: Price * interest/dividend > 0.75 , set to `1` signals occurence of state 
@@ -59,11 +60,11 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit10` :  Price > 500-period MA , set to `1` signals occurence of state
   - `bit11`: always on: 1 (`State.bit11`)
   - `bit12`: always off: 0 (`State.bit12`) 
-  - `price` : price vector of risky asset; updated at time t (new clearing price set by total demand) and observed by all agents
-  - `dividend`: dividend vector of risky asset; updated at time t and observed by all agents
-  - `volume` : volume vector using total demand for risky asset; updated at time t
-  - `volatility` : volatility vector calculated using clearing price of risky asset; updated at time t
-  - `technical_activity` : vector that stores the number of set technical trading bits; updated at time t 
+  - `price` : price vector of risky asset; updated at time `t` (new clearing price set by total demand) and observed by all agents
+  - `dividend`: dividend vector of risky asset; updated at time `t` and observed by all agents
+  - `volume` : volume vector using total demand for risky asset; updated at time `t`
+  - `volatility` : volatility vector calculated using clearing price of risky asset; updated at time `t`
+  - `technical_activity` : vector that stores the number of set technical trading bits; updated at time `t` 
 
   We distinguish over four thousand different market states in the simulation, a bit is "set" if it is `0` (no signal) or `1` (signal), `missing` otherwise. For example:
   
@@ -81,11 +82,11 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `expected_pd`: agent i's prediction j of next period's price and dividend; linear combination of current price and dividend
   - `demand_xi`: an agent's demand for holding shares of risky asset
   - `σ_i`: an agent's forcast of the conditional variance of price-plus-dividend
-  - `δ` : an agent's asynchronous sequence of learning frequency (term used for GA selection)
-  - `a`: linear forecasting parameter; uniform about [`0.7, 1.2`] 
-  - `b`: linear forecasting parameter; uniform about [`-10.0, 19.002`]
+  - `δ` : an agent's asynchronous sequence of random learning frequency (term used for GA selection)
+  - `a`: linear forecasting parameter; uniform about [`0.7, 1.2`] # **TODO: Remove from this spot?**
+  - `b`: linear forecasting parameter; uniform about [`-10.0, 19.002`] # **TODO: Remove from this spot?**
   - `JX`: crossover for genetic algorithm (probability of recombination)
-  - `τ`: relevant horizon length for accuracy-updating parameter for predictor 
+  - `τ`: relevant horizon length for accuracy-updating parameter for predictor # **TODO: Move to model properties?**
   - `s`: fitness measure specificity; number of bits that are set in the predictor's condition array 
 
 ### The model 
@@ -106,7 +107,7 @@ Whatever the environment for market behavior as described by the `regime` proper
 
 The model is ran for an initial warm-up period (determined by `warm_up_t`) and then the outputs are recorded for the next 10,000 time steps and used for analysis. 
 
-#### Initialising Agents
+#### Initializing Agents
 
 - `init_agents!`: 
 
@@ -115,7 +116,7 @@ The model is ran for an initial warm-up period (determined by `warm_up_t`) and t
   Agents create and instantiate all parameters used in the step function.  
   Agents also form their predictors (`evolution.init_predictors`).
 
-  - `init_state!`: 
+- `init_state!`: 
 
   This function defines the creation of the market state at step 0.
   The initial `price` and `dividend` is initialized using the parameters from `properties`. 
@@ -147,7 +148,7 @@ During each step of the simulation, all agents are randomly activated to act acc
 
 1. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_output!`). 
 2. Sum the total demand and equate it to number of shares issued to determine and broadcast the new clearing price and dividend (i.e., simulate market specialist and price formation mechanism). Then perform following conditional action: 
-  If simulation time < `warm_up_t`: 
+  If simulation time `t` < `warm_up_t`: # **TODO: Update everything here to be prefaced with `State.X..` if it needs it (for consistency).
     Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
   Else:
     Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
@@ -160,6 +161,7 @@ After these model calculations, some additional agent actions are done (or not d
 5. Use predictor accuracy, fitness measure, and `δ` to determine if selected for recombination. 
 6. Update their error variance `σ_i`.
 7. Undergo the genetic algorithm (`evolution.GA!`) or not based on aformentioned factors.
+8. Increment global simulation time step `State.t` by 1. 
 
 The simulations of the model are run by executing the [`ABM/run.jl`](run.jl) file. 
 

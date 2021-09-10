@@ -43,6 +43,7 @@ Define parameter structure of states.
 Please use `ABM/README.md` as a reference for what each field of this struct does.
 """
 struct State # Must this be a mutable struct filled with vectors like one below...? 
+    t::Vector{Int} = [] # **TODO: Remove this?**
     bit1::Int
     bit2::Int
     bit3::Int

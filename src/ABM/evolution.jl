@@ -14,7 +14,7 @@ using StatsBase
 Agent `predictors` vector is coupled to unique `id`.
 """
 
-function init_predictors(num_predictors, predictors)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
+function init_predictors(num_predictors)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
     predictors = Vector{Any}(undef, 0) # Put this step somewhere else?
     for i in 1:(length(num_predictors)-1)
         heterogeneity = Vector{Any}(undef, 3)
@@ -26,7 +26,7 @@ function init_predictors(num_predictors, predictors)   # Add an identifier? Sepe
         bit_vec = vcat(heterogeneity, bit_vec)
         predictors = push!(predictors, bit_vec)
     end
-    #return predictors
+    return predictors
 end
 
 # Add step for "Default" predictor.....
@@ -38,8 +38,8 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 """
 
 function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
-    predict_acc = Vector{Any}(undef, 0) # Put this step somewhere else? How to initialize this? return?
-    fitness_j = Vector{Any}(undef, 0) # Put this step somewhere else?
+    #predict_acc = Vector{Any}(undef, 0) # Put this step somewhere else? How to initialize this? return?
+    #fitness_j = Vector{Any}(undef, 0) # Put this step somewhere else?
     δ = Vector{Any}(undef, N)
     sample!(δ_dist, δ; replace=false, ordered=false)
 end
