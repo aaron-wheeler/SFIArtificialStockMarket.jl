@@ -38,6 +38,7 @@ function init_model(; seed::UInt32, env, properties...)
             rng = MersenneTwister(seed) # TODO: Investigate this
         )
         model.dist = cumsum(model.dist)
+        init_state!(model)
         init_agents!(model)
         return model
     else
@@ -136,7 +137,7 @@ function init_agents!(model) #init_state has to come before this
         a.predict_acc = Vector{Any}(undef, 0) # Should I change all these from `Any` to `Float` 
         a.fitness_j = Vector{Any}(undef, 0)
         a.δ = evolution.init_learning(N,δ_dist)
-        a.expected_pd = evolution.update_exp!(X...)
+        a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
         a.demand_xi = evolution.update_demand!(X...)
         a.σ_i = Vector{Any}(undef, 0)
         

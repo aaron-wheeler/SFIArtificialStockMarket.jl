@@ -14,13 +14,13 @@ using StatsBase
 Agent `predictors` vector is coupled to unique `id`.
 """
 
-function init_predictors(num_predictors)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
-    predictors = Vector{Any}(undef, 0) # Put this step somewhere else?
-    for i in 1:(length(num_predictors)-1)
+function init_predictors(num_predictors) # Add an identifier? 
+    predictors = Vector{Any}(undef, 0) 
+    for i in 1:(num_predictors-1) # minus one so that we can add default predictor
         heterogeneity = Vector{Any}(undef, 3)
-        heterogeneity[1] = rand(Uniform(0.7,1.2))
-        heterogeneity[2] = rand(Uniform(-10.0, 19.002))
-        heterogeneity[3] = σ_pd
+        heterogeneity[1] = rand(Uniform(0.7,1.2)) # a
+        heterogeneity[2] = rand(Uniform(-10.0, 19.002)) # b 
+        heterogeneity[3] = σ_pd # initial σ_i = σ_pd
         bit_vec = Vector{Any}(undef, 12)
         sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec)
         bit_vec = vcat(heterogeneity, bit_vec)
@@ -46,11 +46,15 @@ end
 
 
 """
-Set initial expected price and dividend forecasts. #**One per predictor? How to choose best one with no init accuracy?
+Set initial (?) expected price and dividend forecasts. #**One per predictor? How to choose best one with no init accuracy?
 """
-function update_exp!(X...)
-    X
-    
+function update_exp!(predictors, price, dividend) # only done for predictors that are active, this must be implemented beforehand? Initial?
+    expected_pd = Vector{Float64}(undef, 0) 
+    for i in 1:(length(predictors)+1) # add one to include the default pred.... (add default to predictors and remove +1?)
+        linear_pd_forecast = (predictors[i][1])*(price + dividend) + (predictors[i][2])
+        push!(expected_pd, linear_pd_forecast)
+    end
+    return expected_pd
 end
 
 """
