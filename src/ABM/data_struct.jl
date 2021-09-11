@@ -70,12 +70,12 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 """
 Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line means 
     id::Int
-    relative_cash::Float64 = init_cash #(**To do: Investigate this, set equal to zero?**)
+    relative_cash::Float64 = init_cash #(**To do: Investigate this, remove or set equal to zero/remove equals sign?**)
     pos::Dims{2}
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
-    expected_pd::Vector{Float64} = []
+    expected_pd::Vector{Float64} = [] # Is there one of these for each predictor? Why a vector?
     demand_xi::Int = 0 #(**To do: Investigate this, should this be a float?**)
     σ_i::Float64 = σ_pd #(**To do: Investigate this, set equal to zero? Should this be vector?**)
     δ::Float64 = 0.0

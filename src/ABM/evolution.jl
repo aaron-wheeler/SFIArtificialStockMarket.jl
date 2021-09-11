@@ -46,6 +46,22 @@ end
 
 
 """
+Set initial expected price and dividend forecasts. #**One per predictor? How to choose best one with no init accuracy?
+"""
+function update_exp!(X...)
+    X
+    
+end
+
+"""
+Set initial demand to send to market specialist. #**Constrain to 1 or 0? How to send to market maker?
+"""
+function update_demand!(X...)
+    X
+    
+end
+
+"""
 Set initial values for δ depending on agent value type.
 """
 function init_delta(status)

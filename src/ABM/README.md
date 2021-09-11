@@ -119,7 +119,7 @@ The model is ran for an initial warm-up period (determined by `warm_up_t`) and t
 - `init_state!`: 
 
   This function defines the creation of the market state at step 0.
-  The initial `price` and `dividend` is initialized using the parameters from `properties`. 
+  The initial `price` and `dividend` is initialized using the parameters from `properties`.
 
 - `evolution.init_predictors`: 
 
@@ -146,20 +146,20 @@ The stepping function is split into two sections, the initial warm-up section, f
 
 During each step of the simulation, all agents are randomly activated to act according to the following specifications (Note that not all of these variables are observed by the agents and thus, some do not affect agent behaviour at all):
 
-1. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_output!`). 
+1. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_exp!`, `evolution.update_demand!`, respectively). 
 2. Sum the total demand and equate it to number of shares issued to determine and broadcast the new clearing price and dividend (i.e., simulate market specialist and price formation mechanism). Then perform following conditional action: 
-  If simulation time `t` < `warm_up_t`: # **TODO: Update everything here to be prefaced with `State.X..` if it needs it (for consistency).
-    Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
-  Else:
-    Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
-    Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step.     
+- If simulation time `t` < `warm_up_t`: # **TODO: Update everything here to be prefaced with `State.X..` if it needs it (for consistency).
+  - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
+- Else:
+  - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
+  - Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step.     
 3. Update individual agents properties (i.e., assets held, cumulative wealth) (`evolution.update_rewards!`).
 
 After these model calculations, some additional agent actions are done (or not done) at the end of the current model step:  
 
 4. Update the predictor accuracy and fitness measure (`evolution.update_predict_acc!` and `evolution.update_fitness_j!`).
 5. Use predictor accuracy, fitness measure, and `δ` to determine if selected for recombination. 
-6. Update their error variance `σ_i`.
+6. Update their error variance `σ_i`. # **TODO: Investigate when this done, potentially add to step 4**
 7. Undergo the genetic algorithm (`evolution.GA!`) or not based on aformentioned factors.
 8. Increment global simulation time step `State.t` by 1. 
 
