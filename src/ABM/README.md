@@ -148,7 +148,7 @@ During each step of the simulation, all agents are randomly activated to act acc
 
 1. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_exp!`, `evolution.update_demand!`, respectively). 
 2. Sum the total demand and equate it to number of shares issued to determine and broadcast the new clearing price and dividend (i.e., simulate market specialist and price formation mechanism). Then perform following conditional action: 
-- If simulation time `t` < `warm_up_t`: # **TODO: Update everything here to be prefaced with `State.X..` if it needs it (for consistency).
+- If simulation time `t` < `warm_up_t`: # **TODO: Update everything here to be prefaced with `State.X..` if it needs it (for consistency).**
   - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
 - Else:
   - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
