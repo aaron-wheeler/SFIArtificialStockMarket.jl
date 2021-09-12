@@ -54,14 +54,15 @@ function update_exp!(predictors, price, dividend) # only done for predictors tha
         linear_pd_forecast = (predictors[i][1])*(price + dividend) + (predictors[i][2])
         push!(expected_pd, linear_pd_forecast)
     end
-    return expected_pd
+    # select expected_pd belonging to the active predictor with the highest accuracy
+    # return single_expected_pd
 end
 
 """
-Set initial demand to send to market specialist. #**Constrain to 1 or 0? How to send to market maker?
+Set initial (?) demand to send to market specialist. #**Constrain to 1 or 0? How to send to market maker?
 """
 function update_demand!(X...)
-    X
+    demand_xi = (single_expected_pd )
     
 end
 
