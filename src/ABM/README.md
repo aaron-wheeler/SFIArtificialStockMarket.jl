@@ -23,10 +23,11 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit8` : technical bit; Price > 10-period MA (`State.bit8`)
   - `bit9` : technical bit; Price > 100-period MA (`State.bit9`)
   - `bit10` : technical bit; Price > 500-period MA (`State.bit10`)
-  - `bit11`: experimental control; always on: 1 (`State.bit11`)
-  - `bit12`: experimental control; always off: 0 (`State.bit12`)
-  - `warm_up_t` : number of time steps for initial warm-up period of model (default = `250,000`)
-  - `recorded_t` : number of time steps for actual recorded period of model (default = `10,000`)
+  - `bit11` : experimental control; always on: 1 (`State.bit11`)
+  - `bit12` : experimental control; always off: 0 (`State.bit12`)
+  - `initialization_t` : number of time steps for initialization period of model (default = `500`)
+  - `warm_up_t` : number of time steps for preliminary pre-S.S. period of model (default = `250,000`)
+  - `recorded_t` : number of time steps for post-S.S period of model (default = `10,000`)
   - `k` : frequency of learning for agents across the simulation; average number of time steps determined by market regime 
   - `regime` : the market regime can be either    # **TODO: Remove this and just change params to see diff instead?**
     - `Complex`, i.e. all agents continually explore prediction space at fast (realistic) rates;
@@ -105,7 +106,7 @@ Whatever the environment for market behavior as described by the `regime` proper
  - `scheduler` : agents are activated at random (`Schedulers.randomly`); 
  - `rng` : stores a seeded random number generator to be used in the model.
 
-The model is ran for an initial warm-up period (determined by `warm_up_t`) and then the outputs are recorded for the next 10,000 time steps and used for analysis. 
+After an initialization period `initialization_t`, the model undergoes warm-up period `warm_up_t` and then the outputs are recorded for the next `recorded_t` time steps and used for analysis. 
 
 #### Initializing Agents
 
@@ -146,14 +147,16 @@ The stepping function is split into two sections, the initial warm-up section, f
 
 During each step of the simulation, all agents are randomly activated to act according to the following specifications (Note that not all of these variables are observed by the agents and thus, some do not affect agent behaviour at all):
 
-1. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_exp!`, `evolution.update_demand!`, respectively). 
-2. Sum the total demand and equate it to number of shares issued to determine and broadcast the new clearing price and dividend (i.e., simulate market specialist and price formation mechanism). Then perform following conditional action: 
-- If simulation time `t` < `warm_up_t`: # **TODO: Update everything here to be prefaced with `State.X..` if it needs it (for consistency).**
+1. Execute dividend process (`X`) and post for all agents to see `state.dividend`
+2. Match predictors to market state and select fittest one for expected price formulation and demand function (`evolution.match_predictor!`).  
+3. Sum the total demand and equate it to number of shares issued to determine and broadcast the new clearing price and dividend (i.e., simulate market specialist and price formation mechanism). Then perform following conditional action: 
+- If simulation time `t` < `warm_up_t`: # **TODO: FIX & Update everything here to be prefaced with `State.X..` if it needs it (for consistency).**
   - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
 - Else:
   - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
-  - Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step.     
-3. Update individual agents properties (i.e., assets held, cumulative wealth) (`evolution.update_rewards!`).
+  - Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step.
+4. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_exp!`, `evolution.update_demand!`, respectively).
+5. Update individual agents properties (i.e., shares held, cumulative wealth) (`evolution.update_rewards!`).
 
 After these model calculations, some additional agent actions are done (or not done) at the end of the current model step:  
 

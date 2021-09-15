@@ -19,6 +19,7 @@ Base.@kwdef mutable struct ModelProperties
     bit10::Int
     bit11::Int
     bit12::Int
+    initialization_t::Int = 500
     warm_up_t::Int = 250000
     recorded_t::Int = 10000
     k::Int # **TODO: How to make this work?**

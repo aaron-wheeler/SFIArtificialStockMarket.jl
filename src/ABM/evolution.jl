@@ -2,14 +2,29 @@ module evolution
 
 using Agents
 using Distributions
-using Pipe
+#using Pipe
 using Random
 using StatsBase
 
-## Initialisation
+## Dividend process
 
 """
-    `init_predictors(num_predictors, predictors) → predictors`
+    `dividend_process() → dividend`
+
+Autoregressive dividend process is appended to vector and made public to all agents.
+Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
+"""
+function dividend_process(d̄, ρ, dividend, σ_ε)
+    ε = rand(Normal(0.0,σ_ε))
+    dt = d̄ + ρ*(last(dividend) - d̄) + ε
+    dividend = push!(dividend, dt)
+    return dividend
+end
+
+## Initialization
+
+"""
+    `init_predictors() → predictors`
 
 Agent `predictors` vector is coupled to unique `id`.
 """
@@ -44,10 +59,24 @@ function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors
     sample!(δ_dist, δ; replace=false, ordered=false)
 end
 
+"""
+
+- Determine which predictors are active based on market state 
+- Among the active predictors, select the one with the highest fitness measure
+- From this predictor, return a vector composed of a, b, σ_i, and agent ID 
+"""
+
+function match_predictor()
+    
+end
+
 
 """
-Set initial (?) expected price and dividend forecasts. #**One per predictor? How to choose best one with no init accuracy?
+Set expected price and dividend forecasts. 
+
+This function is employed after clearing p is obtained. Needed for determining indv agent demand and updating acc
 """
+ 
 function update_exp!(predictors, price, dividend) # only done for predictors that are active, this must be implemented beforehand? Initial?
     expected_pd = Vector{Float64}(undef, 0) 
     for i in 1:(length(predictors)+1) # add one to include the default pred.... (add default to predictors and remove +1?)
