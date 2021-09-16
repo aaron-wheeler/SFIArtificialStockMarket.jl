@@ -52,13 +52,12 @@ Initialize market state.
 """
 
 function init_state!(model)
-    t = Vector{Int}(undef, 0)
     dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
     price = Vector{Float64}(undef, 0)
     init_price = init_dividend / model.r
     state = State(
-        t = push!(t, 0)
+        t = 1
         price = push!(price, init_price)
         dividend = push!(dividend, init_dividend)
         volume = Vector{Any}(undef, 0)
@@ -78,9 +77,10 @@ function init_state!(model)
         bit12 = Vector{Any}(undef, 0)
     )
     # Initialization period, generate historical dividend and prices
-    while last(t) <= model.initialization_t
+    while state.t <= model.initialization_t
         dividend = dividend_process(model.d̄, model.ρ, dividend, model.σ_ε)
-        price = push!(price, (last(dividend) / model.r)) 
+        price = push!(price, (last(dividend) / model.r))
+        state.t += 1
     end
 
     # generate first state bit vector sequence

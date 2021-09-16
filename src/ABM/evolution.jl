@@ -6,12 +6,12 @@ using Distributions
 using Random
 using StatsBase
 
-## Dividend process
+## Dividend process, move to step function
 
 """
     `dividend_process() → dividend`
 
-Autoregressive dividend process is appended to vector and made public to all agents.
+Autoregressive dividend process is appended to vector and made public to all agents
 Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
 """
 function dividend_process(d̄, ρ, dividend, σ_ε)
@@ -19,6 +19,21 @@ function dividend_process(d̄, ρ, dividend, σ_ε)
     dt = d̄ + ρ*(last(dividend) - d̄) + ε
     dividend = push!(dividend, dt)
     return dividend
+end
+
+## Update global market state bit vector, move to step function
+
+"""
+    `update_market_vector() → bit 1-12`
+
+Assign "1" or "0" values depending on the presence of bit signals
+"""
+function update_market_vector(bit1, bit2, bit3...)
+    # if 
+        
+    # end
+
+    # return bit1, bit2, bit3... # is it possible to do this?
 end
 
 ## Initialization
