@@ -168,9 +168,9 @@ After these model calculations, some additional agent actions are done (or not d
 
 4. Update the predictor accuracy and fitness measure (`evolution.update_predict_acc!` and `evolution.update_fitness_j!`).
 5. Use predictor accuracy, fitness measure, and `δ` to determine if selected for recombination. 
-6. Update their error variance `σ_i`. # **TODO: Investigate when this done, potentially add to step 4**
-7. Undergo the genetic algorithm (`evolution.GA!`) or not based on aformentioned factors.
-8. Increment global simulation time step `State.t` by 1. 
+6. Undergo the genetic algorithm (`evolution.GA!`) or not based on aformentioned factors. 
+7. If GA is invoked, update conditional variance `σ_i` to current `predict_acc` value.
+8. Increment global simulation time step `State.t` by 1.
 
 The simulations of the model are run by executing the [`ABM/run.jl`](run.jl) file. 
 

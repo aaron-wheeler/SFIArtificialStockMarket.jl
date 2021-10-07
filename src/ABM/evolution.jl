@@ -36,12 +36,14 @@ function update_market_vector(bit1, bit2, bit3...)
     # return bit1, bit2, bit3... # is it possible to do this?
 end
 
-## Initialization
+## Initialization (done for each agent individually)
 
 """
     `init_predictors() → predictors`
 
 Agent `predictors` vector is coupled to unique `id`.
+
+**Should accuracy and fitness measure also be appended to each predictor?
 """
 
 function init_predictors(num_predictors) # Add an identifier? 
@@ -65,6 +67,8 @@ end
     `init_learning() → `
 
 Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` coupled to unique `id`.
+
+**Change this
 """
 
 function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
@@ -74,6 +78,12 @@ function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors
     sample!(δ_dist, δ; replace=false, ordered=false)
 end
 
+# function init_predict_acc
+
+# function init_fitness_j
+
+
+
 ## Order Execution Mechanism 
 
 """
@@ -82,13 +92,13 @@ end
 - Among the active predictors, select the one with the highest fitness measure
 - From this predictor, return a matrix `forecast` composed of a, b, σ_i, and agent ID 
 """
-
-function match_predictor()
+# make this two functions instead of one? one for matching active predictors and other for returning forecast? 
+function match_predictors()
     
     return forecast
 end
 
-
+# function get_forecast!()
 
 """
 Balance market orders and calculate agent demand. 
@@ -317,27 +327,48 @@ function get_trades!(df, cash_restriction)
 end
 
 
-## Agent Updating
+## Agent Updating (done for each agent individually)
 
 """
-Calculate expected price and dividend forecasts. 
+Update individual agent financial metrics
 
-This function is employed after clearing p is obtained. Needed for determining indv agent demand and updating acc
+From order execution output, update `relative_cash` & `relative_holdings`
 """
- 
-function update_exp!(predictors, price, dividend) # only done for predictors that are active, this must be implemented beforehand? Initial?
-    expected_pd = Vector{Float64}(undef, 0) 
-    for i in 1:(length(predictors)+1) # add one to include the default pred.... (add default to predictors and remove +1?)
-        linear_pd_forecast = (predictors[i][1])*(price + dividend) + (predictors[i][2])
-        push!(expected_pd, linear_pd_forecast)
-    end
-    # select expected_pd belonging to the active predictor with the highest accuracy
-    # return single_expected_pd
+function update_rewards!()
+    
 end
 
 
+"""
+Update accuracy of each active predictor. 
+"""
+ 
+function update_predict_acc!!(predictors, price, dividend)
+
+end
 
 
+"""
+Update accuracy of each active predictor. 
+"""
+
+function update_fitness_j!()
+    
+end
+
+
+# **SAVING GA STUFF FOR AFTER INTEGRATION TESTING
+# """
+# Check recombination status. 
+    
+# Will use predictor accuracy, fitness measure, and `δ` to determine if selected for recombination via GA.
+
+# **Return boolean here, followed by if statment holding GA function? 
+# ** if statement t - last_t_δ == δ
+# """
+# function check_recombination()
+    
+# end
 
 
 ### -------IRRELEVANT PREV ABM STUFF------- ###
