@@ -39,6 +39,8 @@ Base.@kwdef mutable struct ModelProperties
     init_cash::Float64 = 20000.0
     trade_restriction::Float64 = 10.0
     short_restriction::Float64 = -5.0
+    cash_restriction::Float64 = -2000.0
+    itermax::Int = 500
 end
 
 """

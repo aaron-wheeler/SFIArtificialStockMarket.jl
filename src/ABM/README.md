@@ -1,13 +1,13 @@
 # Sante Fe Institute Artificial Stock Market
 
 ## General description
-The SFI artificial market is a simple model of an asset market that assumes heterogeneous agents who follow inductive reasoning and endogenously reproduce empirical market phenomena. 
+The SFI artificial stock market is a simple model of an asset market that assumes heterogeneous agents who follow inductive reasoning and endogenously reproduce empirical market phenomena. 
 
 ## Model description
 
 ### Data structure
 
-Multiple data structures have been defined in `ABM/data_struct.jl` to organise the different variables and their domains according to the theoretical outline.
+Multiple data structures have been defined in `ABM/data_struct.jl` to organise the different variables and their domains according to the theoretical outline. The values of all properties were obtained directly from the original SFI artificial stock market unless otherwise stated. 
 
 1. A properties struct (`ModelProperties`) defines several model parameters:
   - `num_agents` : number of agents in the model (default = `25`)
@@ -49,6 +49,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `init_cash` : initial cash balance of each agent (default = `20000.0`)
   - `trade_restriction` : trading restriction per period (default = `10.0`)
   - `short_restriction` : shorting restriction per period (default = `-5.0`)
+  - `cash_restriction` : minimum cash allowed at any time period for each agent (default = `-2000.0`)
+  - `itermax` : number of iterations used to obtain clearing price (default = `500`)
 
 2. A State struct (`State`) defines the varying parameters of the applied simulation treatments:
   - `t`: current time step in simulation
@@ -159,7 +161,7 @@ During each step of the simulation, all agents are randomly activated to act acc
 - Else:
   - Calculate the realised_output, `dividend`, `price`, `volume`, `volatility`, and `technical_activity` (`evolution.update_realised_output!`). 
   - Append each output to their respective vectors. The `dividend` and `price` process vectors are made public to the agents for the next time step.
-4. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_exp!`, `evolution.update_demand!`, respectively).
+4. Calculate each agents' expected output, `expected_pd` and `demand_xi` (`evolution.update_exp!`, `evolution.get_demand!`, respectively).
 5. Update individual agents properties (i.e., shares held, cumulative wealth) (`evolution.update_rewards!`).
 
 After these model calculations, some additional agent actions are done (or not done) at the end of the current model step:  

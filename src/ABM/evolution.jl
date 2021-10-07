@@ -80,11 +80,12 @@ end
 
 - Determine which predictors are active based on market state 
 - Among the active predictors, select the one with the highest fitness measure
-- From this predictor, return a vector composed of a, b, σ_i, and agent ID 
+- From this predictor, return a matrix `forecast` composed of a, b, σ_i, and agent ID 
 """
 
 function match_predictor()
     
+    return forecast
 end
 
 
@@ -94,10 +95,225 @@ Balance market orders and calculate agent demand.
 
 At market equilibrium, the specialist obtains the clearing price for the risky asset and rations market orders by the 
 explicit trading constraints `X.......`, ......
+Rationing procedure:
+    If N - round_error > 0 (i.e. positive)
+        Negative difference --> Add extra share(s) to be bought (+1)
+    End
+
+    If N - round_error < 0 (i.e. negative)
+        Positive difference --> Add extra share(s) to be sold (-1)
+    End
+
+    - For every missing share: 
+    - Add extra shares by rank order highest ration_imbalance values
+    - Handle ties randomly to avoid bias. Sort(rev order when -1) --> Random shuffle
+
+    Question: Is it better to ration one side (i.e. only sell more) or split rationing (i.e. sell more and buy less)
+    Answer (Orig model): Ration one side
+    Answer (This model): If ration diff is greater then traders on ex. supply side, then traders on demand side will buy less 
+    to avoid messing with any 0.0 rounding diff stemming from constraint cutoffs
+
+ERROR TERMS TO INCLUDE LATER**
+- Convergence not reached for newton's method under itermax
+- demand_xi not being equivalent to 25 at end of rationing procedure
 """
-function update_demand!(X...)
-    
-    
+function get_demand!(num_agents, N, price, dividend, r, λ, forecast, relative_cash, relative_holdings, 
+        trade_restriction, short_restriction, itermax)
+    dt = last(dividend)
+    Identifier = convert(Vector{Int}, forecast[:, 1])
+    a = forecast[:, 2]
+    b = forecast[:, 3] 
+    σ_i = forecast[:, 4]
+    f(pt) = sum(((a[i]*(pt + dt) + b[i] - pt*(1 + r)) / (λ*σ_i[i])) for i in 1:num_agents) - N
+    pt = last(price) # initial condition, last observed price 
+    pt_iter = [] # More efficent way to do this, with no vector?
+
+    # Solving for clearing price via newton's method
+    for i in 1:itermax
+        global pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
+        push!(pt_iter, pt) # this makes price add 500 elements to the vec each time... bad
+    end
+    cprice = last(pt_iter)
+
+    test_demand_N_convergence = Vector{Float64}(undef, 0)
+    for i in 1:num_agents
+        demand = ((a[i]*(cprice + dt) + b[i] - cprice*(1 + r)) / (λ*σ_i[i]))
+        push!(test_demand_N_convergence, demand)
+    end
+    sum(test_demand_N_convergence)
+
+    # Rounding witchcraft
+    for i in 1:length(test_demand_N_convergence)
+        test_demand_N_convergence[i] = round(test_demand_N_convergence[i], digits = 1)
+    end
+
+    # Way to do this without making this vector every time?
+    xi_excess = Vector{Float64}(undef, 0)
+    for i = 1:N
+        if test_demand_N_convergence[i,1] > trade_restriction
+            push!(xi_excess, (test_demand_N_convergence[i,1] - (test_demand_N_convergence[i,1] - trade_restriction)))
+        elseif test_demand_N_convergence[i,1] < short_restriction
+            push!(xi_excess, (test_demand_N_convergence[i,1] - (test_demand_N_convergence[i,1] - short_restriction)))
+        else
+            push!(xi_excess, test_demand_N_convergence[i,1])
+        end
+    end
+    test_demand_N_convergence = xi_excess
+
+    # To determine rounding difference and adjust share rationing
+    test_demand_round_diff = Vector{Float64}(undef, 0)
+    append!(test_demand_round_diff, test_demand_N_convergence)
+
+    for i in 1:length(test_demand_N_convergence)
+        test_demand_round_diff[i] = trunc(Int64, test_demand_round_diff[i])
+    end
+    round_error = sum(test_demand_round_diff)
+    round_error = convert(Int, round_error)
+    test_demand_round_diff
+
+    demand_ration = hcat(test_demand_N_convergence, test_demand_round_diff)
+
+    # round difference
+    ration_imbalance = N - round_error 
+    demand_ration_imbalance = vec(diff(demand_ration, dims=2))
+    demand_ration_imbalance .= round.(demand_ration_imbalance, digits = 1)
+    demand_ration = hcat(demand_ration, demand_ration_imbalance)
+
+    df = DataFrame(AgentID = Identifier, Current_holding = relative_holdings, Current_cash = relative_cash, 
+        init_xi = demand_ration[:, 1], round_xi = demand_ration[:, 2], xi_diff = demand_ration[:, 3])
+
+    if ration_imbalance > 0
+        # shuffle and sorts agents by xi_diff, largest negative value to highest positive value
+        df = df[shuffle(1:nrow(df)), :]
+        sort!(df, :xi_diff)
+    elseif ration_imbalance < 0
+        # shuffle and sorts agents by xi_diff, largest positive value to highest negative value
+        df = df[shuffle(1:nrow(df)), :]
+        sort!(df, order(:xi_diff), rev=true)
+    end
+        
+    # number of shares the agents want to posess at time t
+    df[!, :demand_xi] = df[:, :round_xi]
+
+    # Rationing supply side, more shares sold (-) or less shares bought (if needed, -)
+    i = 1
+    overbought_shares = abs(ration_imbalance)
+    while overbought_shares > 0
+        if df[i, :xi_diff] < 0 
+            break
+        elseif df[i, :demand_xi] <= short_restriction
+            i += 1
+            continue
+        elseif df[i, :xi_diff] > 0 
+            df[i, :demand_xi] -= 1.0
+            i += 1
+            overbought_shares -= 1
+        else
+            df = df[shuffle(1:nrow(df)), :]
+            sort!(df, :xi_diff)
+            for j = 1:Int((abs(ration_imbalance) - i + 1))
+                if overbought_shares == 0
+                    break
+                elseif df[j, :demand_xi] <= short_restriction
+                    continue
+                else
+                    df[j, :demand_xi] -= 1.0
+                    overbought_shares -= 1
+                end
+            end
+            df = df[shuffle(1:nrow(df)), :]
+            sort!(df, order(:xi_diff), rev=true)
+            i = 1
+        end
+    end
+
+    # Rationing demand side, more shares bought (+) or less shares sold (if needed, +)
+    oversold_shares = ration_imbalance
+    while oversold_shares > 0
+        if df[i, :xi_diff] > 0 
+            break
+        elseif df[i, :demand_xi] >= trade_restriction
+            i += 1
+            continue
+        elseif df[i, :xi_diff] < 0 
+            df[i, :demand_xi] += 1.0
+            i += 1
+            oversold_shares -= 1
+        else
+            df = df[shuffle(1:nrow(df)), :]
+            sort!(df, order(:xi_diff), rev=true)
+            for j = 1:Int((ration_imbalance - i + 1))
+                if oversold_shares == 0
+                    break
+                elseif df[j, :demand_xi] >= trade_restriction
+                    continue
+                else
+                    df[j, :demand_xi] += 1.0
+                    oversold_shares -= 1
+                end
+            end
+            df = df[shuffle(1:nrow(df)), :]
+            sort!(df, :xi_diff)
+            i = 1
+        end
+    end
+    df[!,:demand_xi] = convert.(Int, df[:,:demand_xi])
+    ration_imbalance = N - sum(df[:, :demand_xi])
+    cprice = round(cprice; digits = 2) # any issues with doing this?
+    df[!, :clearing_price] = [cprice for i in 1:nrow(df)]
+    return df
+end
+
+
+"""
+Collect new agent share amount, cash and calculate shares traded, agent profit at time t 
+
+Enforce cash constraint `X` and return df with adjusted agent metrics
+If the budget constraint is violated:
+    -Buy as many as allowed, and the remaining leftover share(s) goes to agent(s) with largest short position
+    -All agent metrics are then balanced to ensure global cash, shares, etc. are conserved
+
+ERROR TERMS TO INCLUDE LATER**
+- Conservation tests for total cash, profit, shares.
+- Check again for passing of trade constraints in case there is adjustment
+- Additional final check to ensure all nonnegative cash values
+"""
+function get_trades!(df, cash_restriction)
+    # The :shares_traded column needed for trading volume vector
+    df[!, :shares_traded] = [(df[i, :demand_xi] - df[i, :Current_holding]) for i in 1:nrow(df)]
+    df[!,:shares_traded] = convert.(Float64, df[:,:shares_traded])
+    cprice = df[1, :clearing_price]
+    # The :profit column is specific to time t, different from net profit 
+    df[!,:profit_t] = [(df[i, :shares_traded] * cprice * -1) for i in 1:nrow(df)]
+    df[:,:Current_cash] = [(df[i,:Current_cash] + df[i, :profit_t]) for i in 1:nrow(df)]
+
+    # Enforcing agent cash constraint
+    for i = 1:nrow(df)
+        if df[i, :Current_cash] < cash_restriction
+            while df[i, :Current_cash] < cash_restriction
+                # subtract share (sell one)
+                df[i, :Current_cash] += cprice
+                df[i, :demand_xi] -= 1
+                df[i, :shares_traded] -= 1.0
+                df[i, :profit_t] += cprice
+                # add share (buy one) elsewhere
+                for j = 1:nrow(df)
+                    if getindex(df[j, :demand_xi]) == minimum(df[:, :demand_xi])
+                        df[j, :Current_cash] -= cprice
+                        df[j, :demand_xi] += 1
+                        df[j, :shares_traded] += 1.0
+                        df[j, :profit_t] -= cprice
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    # Return adjusted agent metrics
+    select!(df, :AgentID, :Current_cash, :demand_xi, :shares_traded, :profit_t)
+    sort!(df)
+    return df
 end
 
 

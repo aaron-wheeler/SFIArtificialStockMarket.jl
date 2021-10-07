@@ -126,8 +126,8 @@ Initialize and add agents.
 
 function init_agents!(model) #init_state has to come before this
     T = model.warm_up_t + model.recorded_t # Total sim time
-    N = T / model.k # num times GA is invoked across total simulation
-    n = Int(N / model.k_var) # scaling factor for consistent k range over time
+    GA_frequency = T / model.k # num times GA is invoked across total simulation
+    n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
     δ_dist_1 = repeat(Vector(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n)
     δ_dist_2 = repeat([model.k, model.k], n)
     δ_dist_3 = repeat(Vector((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n)
@@ -146,8 +146,8 @@ function init_agents!(model) #init_state has to come before this
         a.fitness_j = Vector{Any}(undef, 0)
         a.δ = evolution.init_learning(N,δ_dist)
         a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
-        a.demand_xi = evolution.update_demand!(X...)
-        a.σ_i = Vector{Any}(undef, 0)
+        # a.demand_xi = evolution.get_demand!(X...)
+        # a.σ_i = Vector{Any}(undef, 0)
         
         # add lines that do initial price formation process?
         #evolution...
