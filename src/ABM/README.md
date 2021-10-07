@@ -11,6 +11,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
 
 1. A properties struct (`ModelProperties`) defines several model parameters:
   - `num_agents` : number of agents in the model (default = `25`)
+  - `N` : number of shares of risky asset in the model (default = `25`)
   - `λ` : degree of agents' risk-aversion (default = `0.5`)
   - `num_predictors` : number of conditioned predictors each agent employs at a time (default = `100`)
   - `bit1`: fundamental bit; Price * interest/dividend > 0.25 (`State.bit1`)
@@ -46,6 +47,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `init_price` : initial price for risky asset (default = `X`) (**To do: Replace with min/max?**)
   - `init_dividend` : initial dividend for risky asset (default = `X`) (**To do: Replace with min/max?**)
   - `init_cash` : initial cash balance of each agent (default = `20000.0`)
+  - `trade_restriction` : trading restriction per period (default = `10.0`)
+  - `short_restriction` : shorting restriction per period (default = `-5.0`)
 
 2. A State struct (`State`) defines the varying parameters of the applied simulation treatments:
   - `t`: current time step in simulation
@@ -76,6 +79,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
 3. An agent struct (`Trader`) defines the agent variables:
   - `id`: unique identifier for each agent
   - `relative_cash`: each agent's relative cash held (**To do: Also include profit, wealth (would require position var)?**)
+  - `relative_holdings`: each agent's relative number of shares held
   - `pos`: defines agents' position on a grid space as a Tuple{Int,Int} (**To do: For visualization, relate to wealth or holding status?**)
   - `predictors` : The set of evolving conditional predictors each agent uses to forecast price and dividend
   - `predict_acc`: the accuracy of agent i's jth predictor (most accurate is used); updated each time predictor j is active 

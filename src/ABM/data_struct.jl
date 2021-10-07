@@ -5,6 +5,7 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 """
 Base.@kwdef mutable struct ModelProperties
     num_agents::Int = 25
+    N::Int = 25
     λ::Float64 = 0.5
     num_predictors::Int = 100
     bit1::Int
@@ -36,6 +37,8 @@ Base.@kwdef mutable struct ModelProperties
     M::Float64 = 0.0
     C::Float64 = 0.005
     init_cash::Float64 = 20000.0
+    trade_restriction::Float64 = 10.0
+    short_restriction::Float64 = -5.0
 end
 
 """
@@ -71,7 +74,8 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 """
 Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line means 
     id::Int
-    relative_cash::Float64 = init_cash #(**To do: Investigate this, remove or set equal to zero/remove equals sign?**)
+    relative_cash::Float64 = [] #(**To do: Investigate this, remove or set equal to zero/remove equals sign?**)
+    relative_holdings::Int = [] 
     pos::Dims{2}
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []

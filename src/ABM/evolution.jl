@@ -5,8 +5,10 @@ using Distributions
 #using Pipe
 using Random
 using StatsBase
+using ForwardDiff
+using DataFrames
 
-## Dividend process, move to step function
+## Update Market State 
 
 """
     `dividend_process() → dividend`
@@ -21,12 +23,10 @@ function dividend_process(d̄, ρ, dividend, σ_ε)
     return dividend
 end
 
-## Update global market state bit vector, move to step function
-
 """
     `update_market_vector() → bit 1-12`
 
-Assign "1" or "0" values depending on the presence of bit signals
+Update global market state bit vector, assign "1" or "0" values depending on the presence of bit signals
 """
 function update_market_vector(bit1, bit2, bit3...)
     # if 
@@ -74,6 +74,8 @@ function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors
     sample!(δ_dist, δ; replace=false, ordered=false)
 end
 
+## Order Execution Mechanism 
+
 """
 
 - Determine which predictors are active based on market state 
@@ -86,8 +88,23 @@ function match_predictor()
 end
 
 
+
 """
-Set expected price and dividend forecasts. 
+Balance market orders and calculate agent demand. 
+
+At market equilibrium, the specialist obtains the clearing price for the risky asset and rations market orders by the 
+explicit trading constraints `X.......`, ......
+"""
+function update_demand!(X...)
+    
+    
+end
+
+
+## Agent Updating
+
+"""
+Calculate expected price and dividend forecasts. 
 
 This function is employed after clearing p is obtained. Needed for determining indv agent demand and updating acc
 """
@@ -102,13 +119,12 @@ function update_exp!(predictors, price, dividend) # only done for predictors tha
     # return single_expected_pd
 end
 
-"""
-Set initial (?) demand to send to market specialist. #**Constrain to 1 or 0? How to send to market maker?
-"""
-function update_demand!(X...)
-    demand_xi = (single_expected_pd )
-    
-end
+
+
+
+
+
+### -------IRRELEVANT PREV ABM STUFF------- ###
 
 """
 Set initial values for δ depending on agent value type.
