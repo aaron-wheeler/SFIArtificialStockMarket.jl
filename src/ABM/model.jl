@@ -60,7 +60,7 @@ function init_state!(model)
         t = 1
         price = push!(price, init_price)
         dividend = push!(dividend, init_dividend)
-        volume = Vector{Any}(undef, 0)
+        trading_volume = Vector{Any}(undef, 0)
         volatility = Vector{Any}(undef, 0)
         technical_activity = Vector{Any}(undef, 0)
         bit1 = Vector{Any}(undef, 0)

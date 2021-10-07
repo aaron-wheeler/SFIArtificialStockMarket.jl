@@ -64,7 +64,7 @@ struct State # Must this be a mutable struct filled with vectors like one below.
     bit12::Int
     price::Float64 
     dividend::Float64 
-    volume::Float64 
+    trading_volume::Float64 
     volatility::Float64 
     technical_activity::Float64 
 end

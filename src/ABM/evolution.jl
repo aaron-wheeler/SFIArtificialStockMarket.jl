@@ -274,7 +274,7 @@ If the budget constraint is violated:
     -All agent metrics are then balanced to ensure global cash, shares, etc. are conserved
 
 ERROR TERMS TO INCLUDE LATER**
-- Conservation tests for total cash, profit, shares.
+- Conservation tests for total cash, profit, demand, and shares traded.
 - Check again for passing of trade constraints in case there is adjustment
 - Additional final check to ensure all nonnegative cash values
 """

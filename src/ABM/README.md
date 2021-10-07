@@ -68,7 +68,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit12`: always off: 0 (`State.bit12`) 
   - `price` : price vector of risky asset; updated at time `t` (new clearing price set by total demand) and observed by all agents
   - `dividend`: dividend vector of risky asset; updated at time `t` and observed by all agents
-  - `volume` : volume vector using total demand for risky asset; updated at time `t`
+  - `trading_volume` : volume vector using total demand for risky asset; updated at time `t`
   - `volatility` : volatility vector calculated using clearing price of risky asset; updated at time `t`
   - `technical_activity` : vector that stores the number of set technical trading bits; updated at time `t` 
 
