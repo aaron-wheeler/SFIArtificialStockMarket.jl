@@ -63,27 +63,28 @@ function init_state!(model)
         trading_volume = Vector{Any}(undef, 0)
         volatility = Vector{Any}(undef, 0)
         technical_activity = Vector{Any}(undef, 0)
-        bit1 = Vector{Any}(undef, 0)
-        bit2 = Vector{Any}(undef, 0)
-        bit3 = Vector{Any}(undef, 0)
-        bit4 = Vector{Any}(undef, 0)
-        bit5 = Vector{Any}(undef, 0)
-        bit6 = Vector{Any}(undef, 0)
-        bit7 = Vector{Any}(undef, 0)
-        bit8 = Vector{Any}(undef, 0)
-        bit9 = Vector{Any}(undef, 0)
-        bit10 = Vector{Any}(undef, 0)
-        bit11 = Vector{Any}(undef, 0)
-        bit12 = Vector{Any}(undef, 0)
+        bit1 = 0
+        bit2 = 0
+        bit3 = 0
+        bit4 = 0
+        bit5 = 0
+        bit6 = 0
+        bit7 = 0
+        bit8 = 0
+        bit9 = 0
+        bit10 = 0
+        bit11 = 1
+        bit12 = 0
     )
     # Initialization period, generate historical dividend and prices
     while state.t <= model.initialization_t
-        dividend = dividend_process(model.d̄, model.ρ, dividend, model.σ_ε)
-        price = push!(price, (last(dividend) / model.r))
+        state.dividend = dividend_process(model.d̄, model.ρ, state.dividend, model.σ_ε)
+        state.price = push!(state.price, (last(state.dividend) / model.r))
         state.t += 1
     end
 
     # generate first state bit vector sequence
+    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(state.price, state.dividend)
 
 end
 

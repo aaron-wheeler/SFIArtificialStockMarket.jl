@@ -28,12 +28,70 @@ end
 
 Update global market state bit vector, assign "1" or "0" values depending on the presence of bit signals
 """
-function update_market_vector(bit1, bit2, bit3...)
-    # if 
-        
-    # end
-
-    # return bit1, bit2, bit3... # is it possible to do this?
+function update_market_vector(price, dividend)
+    # Fundamental bits
+    if last(price) * r/last(dividend) > 0.25
+        bit1 = 1
+    else
+        bit1 = 0
+    end
+    
+    if last(price) * r/last(dividend) > 0.5
+        bit2 = 1
+    else
+        bit2 = 0
+    end
+    
+    if last(price) * r/last(dividend) > 0.75
+        bit3 = 1
+    else
+        bit3 = 0
+    end
+    
+    if last(price) * r/last(dividend) > 0.875
+        bit4 = 1
+    else
+        bit4 = 0
+    end
+    
+    if last(price) * r/last(dividend) > 1.0
+        bit5 = 1
+    else
+        bit5 = 0
+    end
+    
+    if last(price) * r/last(dividend) > 1.125
+        bit6 = 1
+    else
+        bit6 = 0
+    end
+    
+    # Technical bits, the `period` in MA formula is set to 1 time step
+    if last(price) > mean(price[(end-6):end])
+        bit7 = 1
+    else
+        bit7 = 0
+    end   
+    
+    if last(price) > mean(price[(end-9):end])
+        bit8 = 1
+    else
+        bit8 = 0
+    end   
+    
+    if last(price) > mean(price[(end-99):end])
+        bit9 = 1
+    else
+        bit9 = 0
+    end   
+    
+    if last(price) > mean(price[(end-499):end])
+        bit10 = 1
+    else
+        bit10 = 0
+    end   
+    
+    return bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10
 end
 
 ## Initialization (done for each agent individually)
