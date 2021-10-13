@@ -27,6 +27,8 @@ end
     `update_market_vector() → bit 1-12`
 
 Update global market state bit vector, assign "1" or "0" values depending on the presence of bit signals
+Signal present -> "1"
+Signal absent -> "0"
 """
 function update_market_vector(price, dividend)
     # Fundamental bits
@@ -104,7 +106,7 @@ Agent `predictors` vector is coupled to unique `id`.
 **Should accuracy and fitness measure also be appended to each predictor?
 """
 
-function init_predictors(num_predictors) # Add an identifier? 
+function init_predictors(num_predictors, σ_pd) # Add an identifier? 
     predictors = Vector{Any}(undef, 0) 
     for i in 1:(num_predictors-1) # minus one so that we can add default predictor
         heterogeneity = Vector{Any}(undef, 3)
@@ -116,15 +118,27 @@ function init_predictors(num_predictors) # Add an identifier?
         bit_vec = vcat(heterogeneity, bit_vec)
         predictors = push!(predictors, bit_vec)
     end
+    # default predictor, always active and immune to GA
+    default_heterogeneity = Vector{Any}(undef, 3)
+    default_heterogeneity[1] = sum(Ex_predictors[i][1]*(1/Ex_predictors[i][3]) 
+        for i in 1:(num_predictors-1)) / sum(1/Ex_predictors[i][3] for i in 1:(num_predictors-1)) # default a
+    default_heterogeneity[2] = sum(Ex_predictors[i][2]*(1/Ex_predictors[i][3]) 
+        for i in 1:(num_predictors-1)) / sum(1/Ex_predictors[i][3] for i in 1:(num_predictors-1)) # default b 
+    default_heterogeneity[3] = σ_pd # initial default σ_i = σ_pd
+    default_bit_vec = Vector{Any}(missing, 12)
+    default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
+    predictors = push!(predictors, default_bit_vec)
     return predictors
 end
 
-# Add step for "Default" predictor.....
 
 """
     `init_learning() → `
 
 Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` coupled to unique `id`.
+- `δ` is lone variable 
+- `predict_acc`
+- `fitness_j`
 
 **Change this
 """

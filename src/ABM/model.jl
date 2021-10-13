@@ -140,7 +140,7 @@ function init_agents!(model) #init_state has to come before this
             time_cooperation = model.τ/3,
             time_shirking = model.τ/3,
             status = InVaNo.init_status(id, model.numagents, model.dist, model.groups)
-            predictors = evolution.init_predictors(model.num_predictors)
+            predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         )
         a.relative_cash = model.init_cash
         a.predict_acc = Vector{Any}(undef, 0) # Should I change all these from `Any` to `Float` 
