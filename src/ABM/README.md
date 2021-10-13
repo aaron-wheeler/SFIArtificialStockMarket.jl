@@ -42,7 +42,6 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `σ_pd` : price-plus-dividend variance in the h.r.e.e. (default = `4.0`)
   - `δ_dist` : distribution of time step intervals for random GA selection (mean = `k`) # **TODO: Remove this?**
   - `k_var` : total deviation of k values for heterogeneous and asynchronous agents (default = `40`)
-  - `M`: constant for recombination fitness measure (default = `0.0`) (`Arbitrary`)
   - `C`: cost levied for fitness measure specificity (default = `0.005`)
   - `init_price` : initial price for risky asset (default = `X`) (**To do: Replace with min/max?**)
   - `init_dividend` : initial dividend for risky asset (default = `X`) (**To do: Replace with min/max?**)

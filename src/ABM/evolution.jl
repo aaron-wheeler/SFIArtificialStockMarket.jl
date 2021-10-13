@@ -133,27 +133,31 @@ end
 
 
 """
-    `init_learning() → `
+    `init_learning() → δ, predict_acc, fitness_j`
 
 Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` coupled to unique `id`.
-- `δ` is lone variable 
-- `predict_acc`
-- `fitness_j`
+- `δ` returned as vector, needed for asynch recombination  
+- `predict_acc` returned as vector, associated to each predictor for agent `id`
+- `fitness_j` returned as vector, associated to each `predict_acc` for agent `id`
 
-**Change this
+# FOR ERROR MESSAGES/CONSISTENCY CHECKS**
+# println(sum(δ)) # == T
+# println(mean(δ)) # == k
 """
-
-function init_learning(N,δ_dist)   # Add an identifier? Seperate into 2 vectors (otherwise remove a,b)?
-    #predict_acc = Vector{Any}(undef, 0) # Put this step somewhere else? How to initialize this? return?
-    #fitness_j = Vector{Any}(undef, 0) # Put this step somewhere else?
-    δ = Vector{Any}(undef, N)
+function init_learning(GA_frequency, δ_dist, σ_pd, C)  # Add an identifier?
+    δ = Vector{Any}(undef, GA_frequency)
     sample!(δ_dist, δ; replace=false, ordered=false)
+    
+    predict_acc = fill(σ_pd, 100) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
+    fitness_j = Vector{Float64}(undef, 0)
+    for i in 1:num_predictors
+        s = count(!ismissing, predictors[i][4:15]) # specificity, number of bits that are "set" (not missing)
+        f_j = -1*(predict_acc[i]) - C*s
+        fitness_j = push!(fitness_j, f_j)
+    end
+    
+    return δ, predict_acc, fitness_j
 end
-
-# function init_predict_acc
-
-# function init_fitness_j
-
 
 
 ## Order Execution Mechanism 

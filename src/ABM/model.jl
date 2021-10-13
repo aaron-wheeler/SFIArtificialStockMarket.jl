@@ -127,7 +127,8 @@ Initialize and add agents.
 
 function init_agents!(model) #init_state has to come before this
     T = model.warm_up_t + model.recorded_t # Total sim time
-    GA_frequency = T / model.k # num times GA is invoked across total simulation
+    GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
+    # MAY NEED ERROR MESSAGE TO SPECIFY THAT T/K MUST BE AN INTEGER**
     n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
     δ_dist_1 = repeat(Vector(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n)
     δ_dist_2 = repeat([model.k, model.k], n)
@@ -143,9 +144,7 @@ function init_agents!(model) #init_state has to come before this
             predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         )
         a.relative_cash = model.init_cash
-        a.predict_acc = Vector{Any}(undef, 0) # Should I change all these from `Any` to `Float` 
-        a.fitness_j = Vector{Any}(undef, 0)
-        a.δ = evolution.init_learning(N,δ_dist)
+        a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C)
         a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
         # a.demand_xi = evolution.get_demand!(X...)
         # a.σ_i = Vector{Any}(undef, 0)

@@ -34,7 +34,6 @@ Base.@kwdef mutable struct ModelProperties
     σ_pd::Float64 = 4.0
     δ_dist::Vector{Int} = [] # **TODO: Remove this?**
     k_var::Int = 40
-    M::Float64 = 0.0
     C::Float64 = 0.005
     init_cash::Float64 = 20000.0
     trade_restriction::Float64 = 10.0
