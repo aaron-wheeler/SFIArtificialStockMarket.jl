@@ -105,7 +105,6 @@ Agent `predictors` vector is coupled to unique `id`.
 
 **Should accuracy and fitness measure also be appended to each predictor?
 """
-
 function init_predictors(num_predictors, σ_pd) # Add an identifier? 
     predictors = Vector{Any}(undef, 0) 
     for i in 1:(num_predictors-1) # minus one so that we can add default predictor
@@ -118,12 +117,12 @@ function init_predictors(num_predictors, σ_pd) # Add an identifier?
         bit_vec = vcat(heterogeneity, bit_vec)
         predictors = push!(predictors, bit_vec)
     end
-    # default predictor, always active and immune to GA
+    # default predictor
     default_heterogeneity = Vector{Any}(undef, 3)
-    default_heterogeneity[1] = sum(Ex_predictors[i][1]*(1/Ex_predictors[i][3]) 
-        for i in 1:(num_predictors-1)) / sum(1/Ex_predictors[i][3] for i in 1:(num_predictors-1)) # default a
-    default_heterogeneity[2] = sum(Ex_predictors[i][2]*(1/Ex_predictors[i][3]) 
-        for i in 1:(num_predictors-1)) / sum(1/Ex_predictors[i][3] for i in 1:(num_predictors-1)) # default b 
+    default_heterogeneity[1] = sum(predictors[i][1]*(1/predictors[i][3]) 
+        for i in 1:(num_predictors-1)) / sum(1/predictors[i][3] for i in 1:(num_predictors-1)) # default a
+    default_heterogeneity[2] = sum(predictors[i][2]*(1/predictors[i][3]) 
+        for i in 1:(num_predictors-1)) / sum(1/predictors[i][3] for i in 1:(num_predictors-1)) # default b 
     default_heterogeneity[3] = σ_pd # initial default σ_i = σ_pd
     default_bit_vec = Vector{Any}(missing, 12)
     default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
@@ -144,7 +143,7 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 # println(sum(δ)) # == T
 # println(mean(δ)) # == k
 """
-function init_learning(GA_frequency, δ_dist, σ_pd, C)  # Add an identifier?
+function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier?
     δ = Vector{Any}(undef, GA_frequency)
     sample!(δ_dist, δ; replace=false, ordered=false)
     

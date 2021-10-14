@@ -144,7 +144,7 @@ function init_agents!(model) #init_state has to come before this
             predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         )
         a.relative_cash = model.init_cash
-        a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C)
+        a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
         # a.demand_xi = evolution.get_demand!(X...)
         # a.σ_i = Vector{Any}(undef, 0)
