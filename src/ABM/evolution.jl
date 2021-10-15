@@ -127,7 +127,7 @@ function init_predictors(num_predictors, σ_pd) # Add an identifier?
     default_bit_vec = Vector{Any}(missing, 12)
     default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
     predictors = push!(predictors, default_bit_vec)
-    return predictors
+    return predictors # append indentifiers for each predictor?
 end
 
 
@@ -143,7 +143,7 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 # println(sum(δ)) # == T
 # println(mean(δ)) # == k
 """
-function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier?
+function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier for agent?
     δ = Vector{Any}(undef, GA_frequency)
     sample!(δ_dist, δ; replace=false, ordered=false)
     
@@ -155,19 +155,21 @@ function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predicto
         fitness_j = push!(fitness_j, f_j)
     end
     
-    return δ, predict_acc, fitness_j
+    return δ, predict_acc, fitness_j #Append identifying number for predicts and fitnesses?
 end
 
 
 ## Order Execution Mechanism 
 
 """
+    `match_predictors() → forecast[a, b, σ_i, id]`
 
 - Determine which predictors are active based on market state 
 - Among the active predictors, select the one with the highest fitness measure
 - From this predictor, return a matrix `forecast` composed of a, b, σ_i, and agent ID 
 """
 # make this two functions instead of one? one for matching active predictors and other for returning forecast? 
+# That way we have collection of active predictors to update later and the forecast vector needed for demand fn 
 function match_predictors()
     
     return forecast
@@ -205,7 +207,7 @@ ERROR TERMS TO INCLUDE LATER**
 function get_demand!(num_agents, N, price, dividend, r, λ, forecast, relative_cash, relative_holdings, 
         trade_restriction, short_restriction, itermax)
     dt = last(dividend)
-    Identifier = convert(Vector{Int}, forecast[:, 1])
+    Identifier = convert(Vector{Int}, forecast[:, 1]) # double-check this**
     a = forecast[:, 2]
     b = forecast[:, 3] 
     σ_i = forecast[:, 4]
