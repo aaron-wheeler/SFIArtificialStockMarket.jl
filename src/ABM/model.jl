@@ -149,12 +149,9 @@ function init_agents!(model) #init_state has to come before this
         a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, state_vector, a.predict_acc, a.fitness_j)
 
         a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
-        # a.demand_xi = evolution.get_demand!(X...)
-        # a.σ_i = Vector{Any}(undef, 0)
         
-        # add lines that do initial price formation process?
-        #evolution...
-        
+
+        # Lines from prev ABM....?        
         a.time_individual = model.τ - a.time_cooperation - a.time_shirking
         a.δ = InVaNo.init_delta(a.status)
         # at t_0 both norms are equal for each agent
@@ -168,7 +165,7 @@ function init_agents!(model) #init_state has to come before this
         InVaNo.update_realised_output_max!(a, a.output)
         InVaNo.update_rewards!(a, model.μ, model.λ, base_wage, a.output)
 
-        add_agent_single!(a, model) # Where does this function come from?
+        add_agent_single!(a, model) # Where does this function come from? Agents.jl?
     end
     for agent in allagents(model)
         InVaNo.find_peers!(agent, model)
@@ -181,52 +178,114 @@ end
 """
 Define what happens in the model.
 """
+# function model_step!(model)
+#     scheduled_agents = (model[id] for id in model.scheduler(model))
+
+#     for agent in scheduled_agents
+#         InVaNo.update_norm_coop!(agent, model)
+#         InVaNo.update_norm_shirk!(agent, model)
+#         InVaNo.update_phi!(agent, model.Σ)
+#         InVaNo.update_gamma!(agent)
+#         if model.μ == 1.0
+#             InVaNo.update_rho!(agent, model.λ)
+#         else
+#             agent.ρ = 0.0
+#         end
+#     end
+
+#     for agent in scheduled_agents
+#         if rand(model.rng, Bool)
+#             InVaNo.spend_time_shirking!(agent, model.τ, model.rng)
+#             residual_τ = model.τ - agent.time_shirking
+#             InVaNo.spend_time_cooperation!(agent, residual_τ, model.rng)
+#         else
+#             InVaNo.spend_time_cooperation!(agent, model.τ, model.rng)
+#             residual_τ = model.τ - agent.time_cooperation
+#             InVaNo.spend_time_shirking!(agent, residual_τ, model.rng)
+#         end
+#         InVaNo.spend_time_individual!(agent, model.τ)
+#         InVaNo.update_deviations!(agent)
+#     end
+
+#     OGO = (model.τ * (1 - model.κ)) ^ (1 - model.κ) * (model.τ * model.κ) ^ model.κ
+#     max_output = maximum(agent.output for agent in allagents(model))
+#     for agent in scheduled_agents
+#         all_other_ids = filter(x -> x != agent.id, collect(allids(model)))
+#         mean_coop = mean(model[id].time_cooperation for id in all_other_ids)
+#         InVaNo.update_output!(agent, model.κ, mean_coop)
+#         InVaNo.update_realised_output!(agent, OGO)
+#         InVaNo.update_realised_output_max!(agent, max_output)
+#     end
+
+#     base_wage = model.ω * model.τ
+#     mean_output = mean(agent.output for agent in allagents(model))
+#     for agent in scheduled_agents
+#         InVaNo.update_rewards!(agent, model.μ, model.λ, base_wage, mean_output)
+#     end
+
+#     InVaNo.update_gini_index!(model)
+
+#     return model
+# end
+
+
 function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
+    # Collect demands of all individual agents and return aggregate forecast matrix
     for agent in scheduled_agents
-        InVaNo.update_norm_coop!(agent, model)
-        InVaNo.update_norm_shirk!(agent, model)
-        InVaNo.update_phi!(agent, model.Σ)
-        InVaNo.update_gamma!(agent)
-        if model.μ == 1.0
-            InVaNo.update_rho!(agent, model.λ)
-        else
-            agent.ρ = 0.0
-        end
+
+        # InVaNo.update_norm_coop!(agent, model)
+        # InVaNo.update_norm_shirk!(agent, model)
+        # InVaNo.update_phi!(agent, model.Σ)
+        # InVaNo.update_gamma!(agent)
+        # if model.μ == 1.0
+        #     InVaNo.update_rho!(agent, model.λ)
+        # else
+        #     agent.ρ = 0.0
+        # end
     end
 
-    for agent in scheduled_agents
-        if rand(model.rng, Bool)
-            InVaNo.spend_time_shirking!(agent, model.τ, model.rng)
-            residual_τ = model.τ - agent.time_shirking
-            InVaNo.spend_time_cooperation!(agent, residual_τ, model.rng)
-        else
-            InVaNo.spend_time_cooperation!(agent, model.τ, model.rng)
-            residual_τ = model.τ - agent.time_cooperation
-            InVaNo.spend_time_shirking!(agent, residual_τ, model.rng)
-        end
-        InVaNo.spend_time_individual!(agent, model.τ)
-        InVaNo.update_deviations!(agent)
-    end
+    # Price formation mechanism here, get_demand()
+    # Order execution mechanism here, get_trades()
 
     OGO = (model.τ * (1 - model.κ)) ^ (1 - model.κ) * (model.τ * model.κ) ^ model.κ
     max_output = maximum(agent.output for agent in allagents(model))
-    for agent in scheduled_agents
-        all_other_ids = filter(x -> x != agent.id, collect(allids(model)))
-        mean_coop = mean(model[id].time_cooperation for id in all_other_ids)
-        InVaNo.update_output!(agent, model.κ, mean_coop)
-        InVaNo.update_realised_output!(agent, OGO)
-        InVaNo.update_realised_output_max!(agent, max_output)
-    end
 
+    # Calculate and update individual agent financial rewards
     base_wage = model.ω * model.τ
     mean_output = mean(agent.output for agent in allagents(model))
     for agent in scheduled_agents
         InVaNo.update_rewards!(agent, model.μ, model.λ, base_wage, mean_output)
     end
 
-    InVaNo.update_gini_index!(model)
+    # Update agent forecasting metrics 
+    for agent in scheduled_agents
+
+        # all_other_ids = filter(x -> x != agent.id, collect(allids(model)))
+        # mean_coop = mean(model[id].time_cooperation for id in all_other_ids)
+        # InVaNo.update_output!(agent, model.κ, mean_coop)
+        # InVaNo.update_realised_output!(agent, OGO)
+        # InVaNo.update_realised_output_max!(agent, max_output)
+    end
+
+
+    # **SAVING GA STUFF FOR AFTER INTEGRATION TESTING
+    # Check recombination status for individual agent, and if true, then undergo GA 
+    # for agent in scheduled_agents
+
+    #     # if rand(model.rng, Bool)
+    #     #     InVaNo.spend_time_shirking!(agent, model.τ, model.rng)
+    #     #     residual_τ = model.τ - agent.time_shirking
+    #     #     InVaNo.spend_time_cooperation!(agent, residual_τ, model.rng)
+    #     # else
+    #     #     InVaNo.spend_time_cooperation!(agent, model.τ, model.rng)
+    #     #     residual_τ = model.τ - agent.time_cooperation
+    #     #     InVaNo.spend_time_shirking!(agent, residual_τ, model.rng)
+    #     # end
+    #     # InVaNo.spend_time_individual!(agent, model.τ)
+    #     # InVaNo.update_deviations!(agent)
+    # end
 
     return model
 end
