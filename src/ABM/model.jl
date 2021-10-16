@@ -85,6 +85,7 @@ function init_state!(model)
 
     # generate first state bit vector sequence
     bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(state.price, state.dividend)
+    state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
 
 end
 
@@ -145,6 +146,8 @@ function init_agents!(model) #init_state has to come before this
         )
         a.relative_cash = model.init_cash
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
+        a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, state_vector, a.predict_acc, a.fitness_j)
+
         a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
         # a.demand_xi = evolution.get_demand!(X...)
         # a.σ_i = Vector{Any}(undef, 0)

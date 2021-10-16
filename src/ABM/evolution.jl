@@ -7,6 +7,7 @@ using Random
 using StatsBase
 using ForwardDiff
 using DataFrames
+using MLStyle
 
 ## Update Market State 
 
@@ -162,20 +163,87 @@ end
 ## Order Execution Mechanism 
 
 """
-    `match_predictors() → forecast[a, b, σ_i, id]`
+    `match_predictors() → active_predictors, forecast[a, b, σ_i, id]`
 
-- Determine which predictors are active based on market state 
-- Among the active predictors, select the one with the highest fitness measure
-- From this predictor, return a matrix `forecast` composed of a, b, σ_i, and agent ID 
+- Determine which predictors are active based on market state, return vector of indices for `active_predictors`
+- `active_predictors` vector needed for agent predictor updating steps
+- Among the active predictors, select the one with the highest prediction accuracy. If multiple:
+    - tiebreaker 1 -> highest fitness measure
+    - tiebreaker 2 -> default predictor (j=100)
+- From this predictor, return vector composed of a, b, σ_i, and agent ID for `forecast`
+- `forecast` vector needed for later aggregation and sending through demand function
+
+**Add `active_predictors` and `forecast` to agent struct? Or init to zero/replace @each time step?
+**Need to know index of predictor sent to demand (chosen_j) for any reason? Not returned here, just its a, b, etc.
 """
-# make this two functions instead of one? one for matching active predictors and other for returning forecast? 
-# That way we have collection of active predictors to update later and the forecast vector needed for demand fn 
-function match_predictors()
+function match_predictors(id, num_predictors, predictors, state_vector, predict_acc, fitness_j)
+    # Initialize matrix to store indices of all active predictors
+    active_predictors = Int[] 
+
+    # nested function to match predictor and state vector bits (only used here)
+    match_predict(bit_j, predictor_j, j_id) =
+        for signal in 1:12
+            @match bit_j begin
+            if bit_j[signal] === missing || bit_j[signal] == state_vector[signal] end => push!(predictor_j, j_id) 
+                    _        => continue
+            end
+        end
+
+    for j in 1:num_predictors
+        # reset predictor_j with each iteration
+        predictor_j = Vector{Int}(undef, 0)
+        j_id = j
+
+        # call nested function to see if predictor[j] bits match the state vector
+        match_predict(predictors[j][4:15], predictor_j, j_id)
+
+        # if predictor[j] meets match criteria, append to active_predictors matrix
+        if length(predictor_j) == 12
+            active_predictors = push!(active_predictors, predictor_j[1])
+        else
+            nothing
+        end
+
+    end
+
+    matched_collection = zeros(Int, 3, 0)
+
+    for (index, value) in pairs(IndexStyle(active_predictors), active_predictors)
+        matched_collection = hcat(matched_collection, [value, predict_acc[value], fitness_j[value]])
+    end
+
+    # Set chosen_j to index of predictor used to form agent demand
+    chosen_j = 0
+    highest_acc = findall(matched_collection[2,:] .== maximum(matched_collection[2,:])) # indices where all maxima are found
+
+    if length(highest_acc) == 1
+        chosen_j = Int(matched_collection[1, getindex(highest_acc)])
+    else
+        highest_fitness = findall(matched_collection[3,:] .== maximum(matched_collection[3,:]))
+        fittest_acc = Vector{Int}(undef, 0)
+
+        for i = 1:size(matched_collection, 2)
+            if in.(i, Ref(highest_acc)) == true && in.(i, Ref(highest_fitness)) == true
+                fittest_acc = push!(fittest_acc, i)
+            end
+        end
+
+        if length(fittest_acc) == 1
+            chosen_j = Int(matched_collection[1, getindex(fittest_acc)])
+        else
+            chosen_j = 100
+        end
+    end
+
+    # forecast vector composed of a, b, σ_i, and agent ID
+    forecast = predictors[chosen_j][1:3]
+
+    # add agent ID to forecast vector at position 1 for demand fn
+    forecast = vcat(id, forecast)
     
-    return forecast
+    return active_predictors, forecast
 end
 
-# function get_forecast!()
 
 """
 Balance market orders and calculate agent demand. 
