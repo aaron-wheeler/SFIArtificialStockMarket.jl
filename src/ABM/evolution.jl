@@ -272,13 +272,13 @@ ERROR TERMS TO INCLUDE LATER**
 - Convergence not reached for newton's method under itermax
 - demand_xi not being equivalent to 25 at end of rationing procedure
 """
-function get_demand!(num_agents, N, price, dividend, r, λ, forecast, relative_cash, relative_holdings, 
+function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings, 
         trade_restriction, short_restriction, itermax)
     dt = last(dividend)
-    Identifier = convert(Vector{Int}, forecast[:, 1]) # double-check this**
-    a = forecast[:, 2]
-    b = forecast[:, 3] 
-    σ_i = forecast[:, 4]
+    Identifier = convert(Vector{Int}, expected_xi[1, :])
+    a = convert(Vector{Float64}, expected_xi[2, :])
+    b = convert(Vector{Float64}, expected_xi[3, :]) 
+    σ_i = convert(Vector{Float64}, expected_xi[4, :])
     f(pt) = sum(((a[i]*(pt + dt) + b[i] - pt*(1 + r)) / (λ*σ_i[i])) for i in 1:num_agents) - N
     pt = last(price) # initial condition, last observed price 
     pt_iter = [] # More efficent way to do this, with no vector?

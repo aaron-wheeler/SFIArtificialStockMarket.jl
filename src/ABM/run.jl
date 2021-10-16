@@ -66,39 +66,39 @@ function let_it_run()
             
             models = [init_model(; seed, properties...) for seed in seeds]
             
-            # Collect data
-            adf, mdf = ensemblerun!(models, dummystep, model_step!, 500;
-                adata = adata, mdata = mdata, parallel = true)
+            # # Collect data
+            # adf, mdf = ensemblerun!(models, dummystep, model_step!, 500;
+            #     adata = adata, mdata = mdata, parallel = true)
         
-            # Create save path
-            savepath = mkpath("../../data/ABM/env=$(properties.env)")
+            # # Create save path
+            # savepath = mkpath("../../data/ABM/env=$(properties.env)")
 
-            # Aggregate agent data over replicates
-            adf = @pipe adf |>
-                groupby(_, [:step, :id]) |>
-                combine(_,
-                    adata[1] .=> unique .=> adata[1],
-                    adata[3:end] .=> mean .=> adata[3:end]
-                )
-            adf[!, :env] = fill(properties.env, nrow(adf))
-            adf[!, :scenario] = fill(properties.scenario, nrow(adf))
-            CSV.write("$(savepath)/data_$(properties.scenario).csv", adf)
+            # # Aggregate agent data over replicates
+            # adf = @pipe adf |>
+            #     groupby(_, [:step, :id]) |>
+            #     combine(_,
+            #         adata[1] .=> unique .=> adata[1],
+            #         adata[3:end] .=> mean .=> adata[3:end]
+            #     )
+            # adf[!, :env] = fill(properties.env, nrow(adf))
+            # adf[!, :scenario] = fill(properties.scenario, nrow(adf))
+            # CSV.write("$(savepath)/data_$(properties.scenario).csv", adf)
 
-            # Collect aggregated data over steps
-            aggregate_data = @pipe adf |> 
-                groupby(_, [:step, :env, :scenario]) |>
-                combine(_, 
-                    [:time_individual, :time_shirking, :time_cooperation] .=> mean,
-                    [:output, :reward] .=> sum
-                )
-            CSV.write("$(savepath)/aggregate_$(properties.scenario).csv", aggregate_data)
+            # # Collect aggregated data over steps
+            # aggregate_data = @pipe adf |> 
+            #     groupby(_, [:step, :env, :scenario]) |>
+            #     combine(_, 
+            #         [:time_individual, :time_shirking, :time_cooperation] .=> mean,
+            #         [:output, :reward] .=> sum
+            #     )
+            # CSV.write("$(savepath)/aggregate_$(properties.scenario).csv", aggregate_data)
 
-            # Aggregate model data over replicates
-            mdf = @pipe mdf |>
-                groupby(_, [:step]) |>
-                combine(_, mdata[1] .=> mean .=> mdata[1])
-            mdf[!, :scenario] = fill(properties.scenario, nrow(mdf))
-            CSV.write("$(savepath)/mdf_$(properties.scenario).csv", mdf)
+            # # Aggregate model data over replicates
+            # mdf = @pipe mdf |>
+            #     groupby(_, [:step]) |>
+            #     combine(_, mdata[1] .=> mean .=> mdata[1])
+            # mdf[!, :scenario] = fill(properties.scenario, nrow(mdf))
+            # CSV.write("$(savepath)/mdf_$(properties.scenario).csv", mdf)
         end
     end
 end

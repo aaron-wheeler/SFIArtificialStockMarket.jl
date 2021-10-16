@@ -232,8 +232,11 @@ Define what happens in the model.
 function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
-    # Collect demands of all individual agents and return aggregate forecast matrix
+    # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
+    expected_xi = zeros(Float64, 4, 0)
+    
     for agent in scheduled_agents
+        expected_xi = hcat(expected_xi, agent.forecast) # Have to add `forecast` to Agent struct? Investigate This.
 
         # InVaNo.update_norm_coop!(agent, model)
         # InVaNo.update_norm_shirk!(agent, model)
