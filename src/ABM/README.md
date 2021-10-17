@@ -30,9 +30,9 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `warm_up_t` : number of time steps for preliminary pre-S.S. period of model (default = `250,000`)
   - `recorded_t` : number of time steps for post-S.S period of model (default = `10,000`)
   - `k` : frequency of learning for agents across the simulation; average number of time steps determined by market regime 
-  - `regime` : the market regime can be either    # **TODO: Remove this and just change params to see diff instead?**
+  <!-- - `regime` : the market regime can be either    # **TODO: Remove this and just change params to see diff instead?**
     - `Complex`, i.e. all agents continually explore prediction space at fast (realistic) rates;
-    - `Rational`, i.e. all agents continually explore prediction space at slow rates;
+    - `Rational`, i.e. all agents continually explore prediction space at slow rates; -->
   - `num_shares` : number of shares of risky asset (default = `25`)
   - `r` : constant interest rate of risk-free bond (default = `0.1`)
   - `ρ` : autoregressive parameter for dividend process (default = `0.95`) 

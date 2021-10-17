@@ -8,6 +8,7 @@ Base.@kwdef mutable struct ModelProperties
     N::Int = 25
     λ::Float64 = 0.5
     num_predictors::Int = 100
+    t::Int
     bit1::Int
     bit2::Int
     bit3::Int
@@ -20,11 +21,16 @@ Base.@kwdef mutable struct ModelProperties
     bit10::Int
     bit11::Int
     bit12::Int
+    state_vector::Vector{Int} = []
+    price::Vector{Float64} = []
+    dividend::Vector{Float64} = []
+    trading_volume::Vector{Int} = []
+    volatility::Vector{Float64} = []
+    technical_activity::Vector{Int} = []
     initialization_t::Int = 500
     warm_up_t::Int = 250000
     recorded_t::Int = 10000
-    k::Int # **TODO: How to make this work?**
-    regime::String
+    k::Int = 250 # For complex regime
     num_shares::Int = 25
     r::Float64 = 0.1
     ρ::Float64 = 0.95
@@ -42,31 +48,31 @@ Base.@kwdef mutable struct ModelProperties
     itermax::Int = 500
 end
 
-"""
-Define parameter structure of states.
+# """
+# Define parameter structure of dynamic market state.
 
-Please use `ABM/README.md` as a reference for what each field of this struct does.
-"""
-struct State # Must this be a mutable struct filled with vectors like one below...? 
-    t::Vector{Int} = [] # **TODO: Remove this?**
-    bit1::Int
-    bit2::Int
-    bit3::Int
-    bit4::Int
-    bit5::Int
-    bit6::Int
-    bit7::Int
-    bit8::Int
-    bit9::Int
-    bit10::Int
-    bit11::Int
-    bit12::Int
-    price::Float64 
-    dividend::Float64 
-    trading_volume::Float64 
-    volatility::Float64 
-    technical_activity::Float64 
-end
+# Please use `ABM/README.md` as a reference for what each field of this struct does.
+# """
+# Base.@kwdef mutable struct State  
+#     t::Int # Make this exclusive to ModelProperties?
+#     bit1::Int
+#     bit2::Int
+#     bit3::Int
+#     bit4::Int
+#     bit5::Int
+#     bit6::Int
+#     bit7::Int
+#     bit8::Int
+#     bit9::Int
+#     bit10::Int
+#     bit11::Int
+#     bit12::Int
+#     price::Vector{Float64} = []
+#     dividend::Vector{Float64} = []
+#     trading_volume::Vector{Int} = []
+#     volatility::Vector{Float64} = []
+#     technical_activity::Vector{Int} = []
+# end
 
 """
 Define base structure of agents and their properties.
@@ -87,7 +93,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     δ::Float64 = 0.0
     a::Vector{Float64} = []
     b::Vector{Float64} = []
-    JX::Float64 = 0.0 #(**To do: Investigate this)
-    τ::Int = 0
+    JX::Float64 = 0.1 # For complex regime
+    τ::Int = 75 # For complex regime
     s::Vector{Int} = []
 end

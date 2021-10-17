@@ -27,66 +27,60 @@ Create ABM model with given `seed`, `env`, and other `properties`.
 #     end
 # end
 
-function init_model(; seed::UInt32, env, properties...)
-    if env in ("Complex", "Rational") #Remove this element?
-        space = GridSpace((10,10), periodic = true, metric = :euclidean )  # TODO: Investigate this
-        model = ABM(
-            Trader, 
-            space; # Where to add 'State' structure? If not anywhere then add to Trader?
-            properties = ModelProperties(; env, properties...), 
-            scheduler = Schedulers.randomly, # TODO: Investigate this
-            rng = MersenneTwister(seed) # TODO: Investigate this
-        )
-        model.dist = cumsum(model.dist)
-        init_state!(model)
-        init_agents!(model)
-        return model
-    else
-        error("Given env '$(env)' is not implemented in the model.
-            Please verify the integrity of the provided `env` value.")
-    end
+function init_model(; seed::UInt32, properties...)
+    space = GridSpace((10,10), periodic = true, metric = :euclidean )  # TODO: Investigate this
+    model = ABM(
+        Trader, 
+        space; 
+        properties = ModelProperties(; properties...), 
+        scheduler = Schedulers.randomly, # TODO: Investigate this
+        rng = MersenneTwister(seed) # Is this used anywhere in simulation?
+    )
+    init_state!(model)
+    init_agents!(model)
+    return model
+
 end
 
 """
 Initialize market state.
 """
-
 function init_state!(model)
-    dividend = Vector{Float64}(undef, 0)
+    model.dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
-    price = Vector{Float64}(undef, 0)
+    model.price = Vector{Float64}(undef, 0)
     init_price = init_dividend / model.r
-    state = State(
-        t = 1
-        price = push!(price, init_price)
-        dividend = push!(dividend, init_dividend)
-        trading_volume = Vector{Any}(undef, 0)
-        volatility = Vector{Any}(undef, 0)
-        technical_activity = Vector{Any}(undef, 0)
-        bit1 = 0
-        bit2 = 0
-        bit3 = 0
-        bit4 = 0
-        bit5 = 0
-        bit6 = 0
-        bit7 = 0
-        bit8 = 0
-        bit9 = 0
-        bit10 = 0
-        bit11 = 1
-        bit12 = 0
-    )
+    model.t = 1
+    model.bit1 = 0
+    model.bit2 = 0
+    model.bit3 = 0
+    model.bit4 = 0
+    model.bit5 = 0
+    model.bit6 = 0
+    model.bit7 = 0
+    model.bit8 = 0
+    model.bit9 = 0
+    model.bit10 = 0
+    model.bit11 = 1
+    model.bit12 = 0
+    model.price = push!(price, init_price)
+    model.dividend = push!(dividend, init_dividend)
+    model.trading_volume = Vector{Any}(undef, 0)
+    model.volatility = Vector{Any}(undef, 0)
+    model.technical_activity = Vector{Any}(undef, 0)
+    
     # Initialization period, generate historical dividend and prices
-    while state.t <= model.initialization_t
-        state.dividend = dividend_process(model.d̄, model.ρ, state.dividend, model.σ_ε)
-        state.price = push!(state.price, (last(state.dividend) / model.r))
-        state.t += 1
+    while model.t <= model.initialization_t
+        model.dividend = dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+        model.price = push!(model.price, (last(model.dividend) / model.r))
+        model.t += 1
     end
 
     # generate first state bit vector sequence
-    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(state.price, state.dividend)
-    state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
+    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(model.price, model.dividend)
+    model.state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
 
+    return model
 end
 
 """
@@ -124,9 +118,8 @@ Initialize and add agents.
 #     return model
 # end
 
-# ## Stepping
 
-function init_agents!(model) #init_state has to come before this
+function init_agents!(model)
     T = model.warm_up_t + model.recorded_t # Total sim time
     GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
     # MAY NEED ERROR MESSAGE TO SPECIFY THAT T/K MUST BE AN INTEGER**
@@ -146,30 +139,32 @@ function init_agents!(model) #init_state has to come before this
         )
         a.relative_cash = model.init_cash
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
-        a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, state_vector, a.predict_acc, a.fitness_j)
+        a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
 
-        a.expected_pd = evolution.update_exp!(a.predictors, state.price, state.dividend)
+        a.expected_pd = evolution.update_exp!(a.predictors, model.price, model.dividend)
         
 
-        # Lines from prev ABM....?        
-        a.time_individual = model.τ - a.time_cooperation - a.time_shirking
-        a.δ = InVaNo.init_delta(a.status)
-        # at t_0 both norms are equal for each agent
-        a.norm_coop = a.time_cooperation
-        a.norm_shirk = a.time_shirking
-        # at t_0 mean_coop is equal to every agent's time_cooperation
+        # # Lines from prev ABM....?        
+        # a.time_individual = model.τ - a.time_cooperation - a.time_shirking
+        # a.δ = InVaNo.init_delta(a.status)
+        # # at t_0 both norms are equal for each agent
+        # a.norm_coop = a.time_cooperation
+        # a.norm_shirk = a.time_shirking
+        # # at t_0 mean_coop is equal to every agent's time_cooperation
 
-        # Notice how this isn't attached to indv agent, just uses the indv agent... right? 
-        InVaNo.update_output!(a, model.κ, a.time_cooperation)
-        InVaNo.update_realised_output!(a, theoretical_max_output)
-        InVaNo.update_realised_output_max!(a, a.output)
-        InVaNo.update_rewards!(a, model.μ, model.λ, base_wage, a.output)
+        # # Notice how this isn't attached to indv agent, just uses the indv agent... 
+        # InVaNo.update_output!(a, model.κ, a.time_cooperation)
+        # InVaNo.update_realised_output!(a, theoretical_max_output)
+        # InVaNo.update_realised_output_max!(a, a.output)
+        # InVaNo.update_rewards!(a, model.μ, model.λ, base_wage, a.output)
 
         add_agent_single!(a, model) # Where does this function come from? Agents.jl?
     end
-    for agent in allagents(model)
-        InVaNo.find_peers!(agent, model)
-    end
+
+    # # Notice how this function works agentwise for all agents in sim 
+    # for agent in allagents(model)
+    #     InVaNo.find_peers!(agent, model)
+    # end
     return model
 end
 
