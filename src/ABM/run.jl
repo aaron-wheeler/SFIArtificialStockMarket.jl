@@ -52,12 +52,11 @@ function let_it_run()
     #     :time_cooperation, :time_individual, :time_shirking,
     #     :reward, :output, :realised_output, :realised_output_max]
 
-    adata = [:status, :ϕ, :γ, :ρ,
-    :deviation_norm_shirk, :deviation_norm_coop,
-    :time_cooperation, :time_individual, :time_shirking,
-    :reward, :output, :realised_output, :realised_output_max]
+    adata = [:relative_cash, :relative_holdings]
 
     # mdata = [:gini_index]
+
+    mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
 
     seeds = rand(UInt32, 50) # vector of random seeds?
 

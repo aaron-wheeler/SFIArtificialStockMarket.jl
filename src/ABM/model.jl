@@ -34,7 +34,7 @@ function init_model(; seed::UInt32, properties...)
         space; 
         properties = ModelProperties(; properties...), 
         scheduler = Schedulers.randomly, # TODO: Investigate this
-        rng = MersenneTwister(seed) # Is this used anywhere in simulation?
+        rng = MersenneTwister(seed) # Is this used anywhere in simulation? dividend_process?
     )
     init_state!(model)
     init_agents!(model)

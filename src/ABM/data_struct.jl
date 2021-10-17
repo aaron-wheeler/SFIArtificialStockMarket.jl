@@ -38,7 +38,7 @@ Base.@kwdef mutable struct ModelProperties
     ε::Float64
     σ_ε::Float64 = 0.0743
     σ_pd::Float64 = 4.0
-    δ_dist::Vector{Int} = [] # **TODO: Remove this?**
+    # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
     k_var::Int = 40
     C::Float64 = 0.005
     init_cash::Float64 = 20000.0
@@ -87,13 +87,16 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
-    expected_pd::Vector{Float64} = [] # Is there one of these for each predictor? Why a vector?
-    demand_xi::Int = 0 #(**To do: Investigate this, should this be a float?**)
+    expected_pd::Vector{Float64} = [] # Remove this? Is there one of these for each predictor? Why a vector?
+    demand_xi::Int = 0 # Remove this?
+
+    # specific to predictor, remove?
     σ_i::Float64 
-    δ::Float64 = 0.0
     a::Vector{Float64} = []
     b::Vector{Float64} = []
+
+    δ::Float64 = 0.0
     JX::Float64 = 0.1 # For complex regime
     τ::Int = 75 # For complex regime
-    s::Vector{Int} = []
+    # s::Vector{Int} = [] # specified in match_predictors fn
 end
