@@ -46,25 +46,30 @@ end
 Initialize market state.
 """
 function init_state!(model)
-    model.dividend = Vector{Float64}(undef, 0)
+    dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
-    model.price = Vector{Float64}(undef, 0)
+    price = Vector{Float64}(undef, 0)
     init_price = init_dividend / model.r
-    model.t = 1
-    model.bit1 = 0
-    model.bit2 = 0
-    model.bit3 = 0
-    model.bit4 = 0
-    model.bit5 = 0
-    model.bit6 = 0
-    model.bit7 = 0
-    model.bit8 = 0
-    model.bit9 = 0
-    model.bit10 = 0
-    model.bit11 = 1
-    model.bit12 = 0
+
+    # # Initialize all these by making default value in data_struct.jl?
+    # model.t = 1
+    # model.bit1 = 0 
+    # model.bit2 = 0
+    # model.bit3 = 0
+    # model.bit4 = 0
+    # model.bit5 = 0
+    # model.bit6 = 0
+    # model.bit7 = 0
+    # model.bit8 = 0
+    # model.bit9 = 0
+    # model.bit10 = 0
+    # model.bit11 = 1
+    # model.bit12 = 0
+    
     model.price = push!(price, init_price)
     model.dividend = push!(dividend, init_dividend)
+
+    # Include these?
     model.trading_volume = Vector{Any}(undef, 0)
     model.volatility = Vector{Any}(undef, 0)
     model.technical_activity = Vector{Any}(undef, 0)
@@ -77,7 +82,7 @@ function init_state!(model)
     end
 
     # generate first state bit vector sequence
-    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(model.price, model.dividend)
+    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(model.price, model.dividend) # Have to append model.X to each bit?
     model.state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
 
     return model
@@ -128,21 +133,16 @@ function init_agents!(model)
     δ_dist_2 = repeat([model.k, model.k], n)
     δ_dist_3 = repeat(Vector((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n)
     δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
-    for id in 1:model.numagents # Why are some properties included in `Trader` and others aren't, distinction?
+    for id in 1:model.numagents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
         a = Trader(
             id = id, 
             pos = (1,1),
-            time_cooperation = model.τ/3,
-            time_shirking = model.τ/3,
-            status = InVaNo.init_status(id, model.numagents, model.dist, model.groups)
-            predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
+            relative_cash = model.init_cash,
+            σ_i = model.σ_pd
         )
-        a.relative_cash = model.init_cash
+        a.predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
-
-        a.expected_pd = evolution.update_exp!(a.predictors, model.price, model.dividend)
-        
 
         # # Lines from prev ABM....?        
         # a.time_individual = model.τ - a.time_cooperation - a.time_shirking

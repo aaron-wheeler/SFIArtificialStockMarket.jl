@@ -8,19 +8,19 @@ Base.@kwdef mutable struct ModelProperties
     N::Int = 25
     λ::Float64 = 0.5
     num_predictors::Int = 100
-    t::Int
-    bit1::Int
-    bit2::Int
-    bit3::Int
-    bit4::Int
-    bit5::Int
-    bit6::Int
-    bit7::Int
-    bit8::Int
-    bit9::Int
-    bit10::Int
-    bit11::Int
-    bit12::Int
+    t::Int = 1
+    bit1::Int = 0
+    bit2::Int = 0
+    bit3::Int = 0
+    bit4::Int = 0
+    bit5::Int = 0
+    bit6::Int = 0
+    bit7::Int = 0
+    bit8::Int = 0
+    bit9::Int = 0
+    bit10::Int = 0
+    bit11::Int = 1
+    bit12::Int = 0
     state_vector::Vector{Int} = []
     price::Vector{Float64} = []
     dividend::Vector{Float64} = []
@@ -81,15 +81,15 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 """
 Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line means 
     id::Int
-    relative_cash::Float64 = [] #(**To do: Investigate this, remove or set equal to zero/remove equals sign?**)
-    relative_holdings::Int = [] 
     pos::Dims{2}
+    relative_cash::Float64 
+    relative_holdings::Int = 1
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
     expected_pd::Vector{Float64} = [] # Is there one of these for each predictor? Why a vector?
     demand_xi::Int = 0 #(**To do: Investigate this, should this be a float?**)
-    σ_i::Float64 = σ_pd #(**To do: Investigate this, set equal to zero? Should this be vector?**)
+    σ_i::Float64 
     δ::Float64 = 0.0
     a::Vector{Float64} = []
     b::Vector{Float64} = []
