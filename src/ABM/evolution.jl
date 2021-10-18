@@ -32,7 +32,7 @@ Update global market state bit vector, assign "1" or "0" values depending on the
 Signal present -> "1"
 Signal absent -> "0"
 """
-function update_market_vector(price, dividend)
+function update_market_vector(price, dividend, r)
     # Fundamental bits
     if last(price) * r/last(dividend) > 0.25
         bit1 = 1
@@ -115,7 +115,7 @@ function init_predictors(num_predictors, σ_pd) # Add an identifier?
         heterogeneity[2] = rand(Uniform(-10.0, 19.002)) # b 
         heterogeneity[3] = σ_pd # initial σ_i = σ_pd
         bit_vec = Vector{Any}(undef, 12)
-        sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec)
+        Distributions.sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec)
         bit_vec = vcat(heterogeneity, bit_vec)
         predictors = push!(predictors, bit_vec)
     end
@@ -147,7 +147,7 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 """
 function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier for agent?
     δ = Vector{Any}(undef, GA_frequency)
-    sample!(δ_dist, δ; replace=false, ordered=false)
+    Distributions.sample!(δ_dist, δ; replace=false, ordered=false)
     
     predict_acc = fill(σ_pd, 100) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
     fitness_j = Vector{Float64}(undef, 0)

@@ -37,8 +37,9 @@ function init_model(; seed::UInt32, properties...)
         rng = MersenneTwister(seed) # Is this used anywhere in simulation? dividend_process?
     )
     init_state!(model)
+    println("Market State Initiated")
     init_agents!(model)
-    println("State and Agents Initiated")
+    println("Agents Initiated")
     return model
 
 end
@@ -77,13 +78,15 @@ function init_state!(model)
     
     # Initialization period, generate historical dividend and prices
     while model.t <= model.initialization_t
-        model.dividend = dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+        model.dividend = evolution.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
         model.price = push!(model.price, (last(model.dividend) / model.r))
         model.t += 1
     end
 
     # generate first state bit vector sequence
-    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = update_market_vector(model.price, model.dividend) # Have to append model.X to each bit?
+    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = evolution.update_market_vector(model.price, model.dividend, model.r) # Have to append model.X to each bit?
+    bit11 = 1
+    bit12 = 0
     model.state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
 
     return model
@@ -134,7 +137,7 @@ function init_agents!(model)
     δ_dist_2 = repeat([model.k, model.k], n)
     δ_dist_3 = repeat(Vector((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n)
     δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
-    for id in 1:model.numagents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
+    for id in 1:model.num_agents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
         a = Trader(
             id = id, 
             pos = (1,1),
