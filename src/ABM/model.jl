@@ -144,6 +144,7 @@ function init_agents!(model)
             relative_cash = model.init_cash,
             σ_i = model.σ_pd
         )
+        
         a.predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)

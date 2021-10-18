@@ -91,13 +91,13 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     fitness_j::Vector{Float64} = []
     expected_pd::Vector{Float64} = [] # Remove this? Is there one of these for each predictor? Why a vector?
     demand_xi::Int = 0 # Remove this?
+    δ::Vector{Float64} = []
 
     # specific to predictor, remove?
     σ_i::Float64 
-    a::Vector{Float64} = []
-    b::Vector{Float64} = []
-
-    δ::Float64 = 0.0
+    # a::Vector{Float64} = []
+    # b::Vector{Float64} = []
+    
     # JX::Float64 = 0.1 # For complex regime
     # τ::Int = 75 # For complex regime
     # s::Vector{Int} = [] # specified in match_predictors fn
