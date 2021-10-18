@@ -38,17 +38,6 @@ include("model.jl")
 Create model, let it run, wrangle data, dance a tarantella.
 """
 function let_it_run()
-    # scenarios = (
-    #     Scenario("Trusting", 0.0, 1.0, 0.0),
-    #     Scenario("Controlling", 0.0, 1.0, 1.0),
-    #     Scenario("Cooperative", 1.0, 1.0, 0.5),
-    #     Scenario("Competitive", 1.0, 0.0, 0.5),
-    #     Scenario("Trustcoop", 1.0, 1.0, 0.0),
-    #     Scenario("Trustcomp", 1.0, 0.0, 0.0),
-    #     Scenario("Contrcoop", 1.0, 1.0, 1.0),
-    #     Scenario("Contrcomp", 1.0, 0.0, 1.0),
-    #     Scenario("Base", 0.0, 1.0, 0.5),
-    # )
 
     # # adata = [:status, :ϕ, :γ, :ρ,
     # #     :deviation_norm_shirk, :deviation_norm_coop,
@@ -64,7 +53,7 @@ function let_it_run()
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds
 
-    # Setup parameters (complex or rational)
+    # Setup parameters (for complex or rational)
     properties = (
         k = 250,
         JX = 0.1,
@@ -110,4 +99,4 @@ end
 
 Random.seed!(44801)
 let_it_run()
-println("Works :-)")
+println("Simulation Complete")

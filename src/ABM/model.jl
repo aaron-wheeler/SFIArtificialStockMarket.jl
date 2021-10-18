@@ -1,32 +1,13 @@
 include("data_struct.jl") 
 include("evolution.jl")
 
-## Initialisation
+## Initialization
 
 """
-    `init_model(; seed, env, properties...) → ABM`
+    `init_model(; seed, properties...) → ABM`
 
-Create ABM model with given `seed`, `env`, and other `properties`.
+Create ABM model with given `seed`, and other `properties`.
 """
-# function init_model(; seed::UInt32, env, properties...)
-#     if env in ("Global", "Neighbours", "Random")
-#         space = GridSpace((10,10), periodic = true, metric = :euclidean )
-#         model = ABM(
-#             Employee, 
-#             space; 
-#             properties = ModelProperties(; env, properties...), 
-#             scheduler = Schedulers.randomly,
-#             rng = MersenneTwister(seed)
-#         )
-#         model.dist = cumsum(model.dist)
-#         init_agents!(model)
-#         return model
-#     else
-#         error("Given env '$(env)' is not implemented in the model.
-#             Please verify the integrity of the provided `env` value.")
-#     end
-# end
-
 function init_model(; seed::UInt32, properties...)
     space = GridSpace((10,10), periodic = true, metric = :euclidean )  # TODO: Investigate this
     model = ABM(
@@ -94,44 +75,13 @@ end
 
 """
 Initialize and add agents.
+
+ERROR TERMS TO INCLUDE LATER**
+- For future user-input case, may need to specify that `GA_frequency` (T/k) needs to be an Int
 """
-# function init_agents!(model)
-#     base_wage = model.ω * model.τ
-#     theoretical_max_output = 
-#         (model.τ * (1 - model.κ)) ^ (1 - model.κ) * (model.τ * model.κ) ^ model.κ
-#     for id in 1:model.numagents
-#         a = Employee(
-#             id = id, 
-#             pos = (1,1),
-#             time_cooperation = model.τ/3,
-#             time_shirking = model.τ/3,
-#             status = InVaNo.init_status(id, model.numagents, model.dist, model.groups)
-#         )
-
-#         a.time_individual = model.τ - a.time_cooperation - a.time_shirking
-#         a.δ = InVaNo.init_delta(a.status)
-#         # at t_0 both norms are equal for each agent
-#         a.norm_coop = a.time_cooperation
-#         a.norm_shirk = a.time_shirking
-#         # at t_0 mean_coop is equal to every agent's time_cooperation
-#         InVaNo.update_output!(a, model.κ, a.time_cooperation)
-#         InVaNo.update_realised_output!(a, theoretical_max_output)
-#         InVaNo.update_realised_output_max!(a, a.output)
-#         InVaNo.update_rewards!(a, model.μ, model.λ, base_wage, a.output)
-
-#         add_agent_single!(a, model)
-#     end
-#     for agent in allagents(model)
-#         InVaNo.find_peers!(agent, model)
-#     end
-#     return model
-# end
-
-
 function init_agents!(model)
     T = model.warm_up_t + model.recorded_t # Total sim time
     GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
-    # MAY NEED ERROR MESSAGE TO SPECIFY THAT T/K MUST BE AN INTEGER**
     n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
     δ_dist_1 = repeat(Vector(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n)
     δ_dist_2 = repeat([model.k, model.k], n)
@@ -149,27 +99,9 @@ function init_agents!(model)
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
 
-        # # Lines from prev ABM....?        
-        # a.time_individual = model.τ - a.time_cooperation - a.time_shirking
-        # a.δ = InVaNo.init_delta(a.status)
-        # # at t_0 both norms are equal for each agent
-        # a.norm_coop = a.time_cooperation
-        # a.norm_shirk = a.time_shirking
-        # # at t_0 mean_coop is equal to every agent's time_cooperation
-
-        # # Notice how this isn't attached to indv agent, just uses the indv agent... 
-        # InVaNo.update_output!(a, model.κ, a.time_cooperation)
-        # InVaNo.update_realised_output!(a, theoretical_max_output)
-        # InVaNo.update_realised_output_max!(a, a.output)
-        # InVaNo.update_rewards!(a, model.μ, model.λ, base_wage, a.output)
-
-        add_agent_single!(a, model) # Where does this function come from? Agents.jl?
+        add_agent_single!(a, model) 
     end
 
-    # # Notice how this function works agentwise for all agents in sim 
-    # for agent in allagents(model)
-    #     InVaNo.find_peers!(agent, model)
-    # end
     return model
 end
 
