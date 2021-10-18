@@ -1,5 +1,5 @@
-include("structs.jl") 
-include("InVaNo.jl")
+include("data_struct.jl") 
+include("evolution.jl")
 
 ## Initialisation
 
