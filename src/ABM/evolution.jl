@@ -1,3 +1,4 @@
+# comment before module statement so that VS Code doesn't bug out 
 module evolution
 
 using Agents

@@ -38,6 +38,7 @@ function init_model(; seed::UInt32, properties...)
     )
     init_state!(model)
     init_agents!(model)
+    println("State and Agents Initiated")
     return model
 
 end

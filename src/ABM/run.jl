@@ -24,6 +24,9 @@ using Pipe
 #     using Statistics: mean
 #     using Random
 # end
+using Agents
+using Statistics: mean
+using Random
 
 # # Load model libraries on workers
 # @everywhere cd("src/ABM")
@@ -107,3 +110,4 @@ end
 
 Random.seed!(44801)
 let_it_run()
+println("Works :-)")
