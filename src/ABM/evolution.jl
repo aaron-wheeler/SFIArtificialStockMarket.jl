@@ -286,7 +286,7 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
 
     # Solving for clearing price via newton's method
     for i in 1:itermax
-        global pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
+        pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
         push!(pt_iter, pt) # this makes price add 500 elements to the vec each time... bad
     end
     cprice = last(pt_iter)
@@ -416,8 +416,7 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     df[!,:demand_xi] = convert.(Int, df[:,:demand_xi])
     ration_imbalance = N - sum(df[:, :demand_xi])
     cprice = round(cprice; digits = 2) # any issues with doing this?
-    df[!, :clearing_price] = [cprice for i in 1:nrow(df)]
-    return df
+    return df, cprice
 end
 
 
@@ -434,11 +433,10 @@ ERROR TERMS TO INCLUDE LATER**
 - Check again for passing of trade constraints in case there is adjustment
 - Additional final check to ensure all nonnegative cash values
 """
-function get_trades!(df, cash_restriction)
+function get_trades!(df, cprice, cash_restriction)
     # The :shares_traded column needed for trading volume vector
     df[!, :shares_traded] = [(df[i, :demand_xi] - df[i, :Current_holding]) for i in 1:nrow(df)]
     df[!,:shares_traded] = convert.(Float64, df[:,:shares_traded])
-    cprice = df[1, :clearing_price]
     # The :profit column is specific to time t, different from net profit 
     df[!,:profit_t] = [(df[i, :shares_traded] * cprice * -1) for i in 1:nrow(df)]
     df[:,:Current_cash] = [(df[i,:Current_cash] + df[i, :profit_t]) for i in 1:nrow(df)]
