@@ -3,31 +3,32 @@ using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
 
-# Start workers
-using Distributed
-addprocs()
+# # Start workers
+# using Distributed
+# addprocs(4)
 
-# Set up package environment on workers
-@everywhere begin
-    using Pkg
-    Pkg.activate(".")
-end
+# # Set up package environment on workers
+# @everywhere begin
+#     using Pkg
+#     Pkg.activate(".")
+# end
 
 # Load packages on master process
 using DataFrames
 using CSV
 using Pipe
 
-# Load packages on workers
-@everywhere begin
-    using Agents
-    using Statistics: mean
-    using Random
-end
+# # Load packages on workers
+# @everywhere begin
+#     using Agents
+#     using Statistics: mean
+#     using Random
+# end
 
-# Load model libraries on workers
-@everywhere cd("src/ABM")
-@everywhere include("model.jl")
+# # Load model libraries on workers
+# @everywhere cd("src/ABM")
+# @everywhere include("model.jl")
+include("model.jl")
 
 ## Define scenarios and run model
 """
@@ -60,17 +61,12 @@ function let_it_run()
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds
 
-    # Setup parameters
-    # properties = (
-    #     # scenario = scenario.name,
-    #     # μ = scenario.μ,
-    #     # λ = scenario.λ,
-    #     # Σ = scenario.Σ,
-    #     scenario = scenario.name,
-    #     μ = scenario.μ,
-    #     λ = scenario.λ,
-    #     Σ = scenario.Σ,
-    # )
+    # Setup parameters (complex or rational)
+    properties = (
+        k = 250,
+        JX = 0.1,
+        τ = 75
+    )
     
     models = [init_model(; seed, properties...) for seed in seeds] # 50 random seed trial runs?
     

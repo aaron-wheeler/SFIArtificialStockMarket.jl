@@ -170,9 +170,9 @@ end
 
 ## Stepping
 
-"""
-Define what happens in the model.
-"""
+# """
+# Define what happens in the model.
+# """
 # function model_step!(model)
 #     scheduled_agents = (model[id] for id in model.scheduler(model))
 

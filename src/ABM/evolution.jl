@@ -18,7 +18,7 @@ Autoregressive dividend process is appended to vector and made public to all age
 Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
 """
 function dividend_process(d̄, ρ, dividend, σ_ε)
-    ε = rand(Normal(0.0,σ_ε))
+    ε = rand(Normal(0.0,σ_ε)) # way to include random seed? Move this to model.jl?
     dt = d̄ + ρ*(last(dividend) - d̄) + ε
     dividend = push!(dividend, dt)
     return dividend

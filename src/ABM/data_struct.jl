@@ -30,12 +30,14 @@ Base.@kwdef mutable struct ModelProperties
     initialization_t::Int = 500
     warm_up_t::Int = 250000
     recorded_t::Int = 10000
-    k::Int = 250 # For complex regime
+    k::Int # = 250 for complex regime
+    JX::Float64 # = 0.1 for complex regime
+    τ::Int # = 75 for complex regime
     num_shares::Int = 25
     r::Float64 = 0.1
     ρ::Float64 = 0.95
     d̄::Float64 = 10.0
-    ε::Float64
+    # ε::Float64
     σ_ε::Float64 = 0.0743
     σ_pd::Float64 = 4.0
     # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
@@ -96,7 +98,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     b::Vector{Float64} = []
 
     δ::Float64 = 0.0
-    JX::Float64 = 0.1 # For complex regime
-    τ::Int = 75 # For complex regime
+    # JX::Float64 = 0.1 # For complex regime
+    # τ::Int = 75 # For complex regime
     # s::Vector{Int} = [] # specified in match_predictors fn
 end
