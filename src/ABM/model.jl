@@ -166,25 +166,25 @@ function model_step!(model)
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
     expected_xi = zeros(Float64, 4, 0)
-    # relative_cash
-    # relative_holdings
+    relative_cash_t = Vector{Float64}(undef, 0)
+    relative_holdings_t = Vector{Int}(undef, 0)
     
-    for agent in scheduled_agents # will this work in agent id order?
+    for agent in scheduled_agents # will this work in agent id order? What is scheduled_agents order?
+        # safer to do this all in one data structure and then sort by agent id in next step to ensure consistency?
         expected_xi = hcat(expected_xi, agent.forecast)
-
-        # relative_cash, relative_holdings....
+        relative_cash_t = push!(relative_cash_t, agent.relative_cash)
+        relative_holdings_t = push!(relative_holdings_t, agent.relative_holdings)
 
     end
 
+    # check order consistency of expected_xi[1,:] and relative_cash, relative_holdings
+
     # Price formation mechanism
-    df_demand, clearing_price = evolution.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash, relative_holdings, 
+    df_demand, clearing_price = evolution.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t, 
         model.trade_restriction, model.short_restriction, model.itermax)
 
     # Order execution mechanism here, get_trades()
-
-
-    OGO = (model.τ * (1 - model.κ)) ^ (1 - model.κ) * (model.τ * model.κ) ^ model.κ
-    max_output = maximum(agent.output for agent in allagents(model))
+    df_trades = evolution.get_trades!(df_demand, clearing_price, cash_restriction)
 
     # Calculate and update individual agent financial rewards
     base_wage = model.ω * model.τ
