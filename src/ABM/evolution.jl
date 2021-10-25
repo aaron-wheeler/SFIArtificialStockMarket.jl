@@ -488,13 +488,19 @@ function update_rewards!(df_trades, agent)
 end
 
 
-# """
-# Update accuracy of each active predictor. 
-# """
- 
-# function update_predict_acc!!(predictors, price, dividend)
-
-# end
+"""
+Update accuracy of each active predictor. 
+"""
+function update_predict_acc!(agent, τ, price, dividend)
+    for i = 1:length(agent.predict_acc)
+        if i .∈ Ref(agent.active_predictors)
+            a_j = agent.predictors[i][1]
+            b_j = agent.predictors[i][2]
+            agent.predict_acc[i] = (1-(1/τ))*agent.predict_acc[i] +
+                (1/τ)*(((price[end] + dividend[end]) - (a_j*(price[end-1] + dividend[end-1]) + b_j))^2)
+        end
+    end
+end
 
 
 # """
