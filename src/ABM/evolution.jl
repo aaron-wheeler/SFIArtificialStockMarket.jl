@@ -503,15 +503,6 @@ function update_predict_acc!(agent, τ, price, dividend)
 end
 
 
-# """
-# Update accuracy of each active predictor. 
-# """
-
-# function update_fitness_j!()
-    
-# end
-
-
 # **SAVING GA STUFF FOR AFTER INTEGRATION TESTING
 # """
 # Check recombination status. 
@@ -522,6 +513,22 @@ end
 # ** if statement t - last_t_δ == δ
 # """
 # function check_recombination()
+    
+# end
+
+
+# """
+# Update variance estimate of each predictor `σ_i` to its current active value `predict_acc`. 
+# """
+# function update_variance_j!()
+    
+# end
+
+
+# """
+# Update fitness measure of each predictor. 20 Worst rules will be replaced. 
+# """
+# function update_fitness_j!()
     
 # end
 
