@@ -236,7 +236,7 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
         end
     end
 
-    # forecast vector composed of a, b, σ_i, and agent ID
+    # forecast vector composed of a, b, σ_i
     forecast = predictors[chosen_j][1:3]
 
     # add agent ID to forecast vector at position 1 for demand fn

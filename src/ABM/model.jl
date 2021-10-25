@@ -164,6 +164,9 @@ Define what happens in the model.
 function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
+    # Exogenously determine dividend and post for all agents
+    model.dividend = evolution.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
     expected_xi = zeros(Float64, 4, 0)
     relative_cash_t = Vector{Float64}(undef, 0)
@@ -182,6 +185,9 @@ function model_step!(model)
     # Price formation mechanism
     df_demand, clearing_price = evolution.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t, 
         model.trade_restriction, model.short_restriction, model.itermax)
+
+    # Update price vector
+    model.price = push!(model.price, clearing_price)
 
     # Order execution mechanism here, get_trades()
     df_trades = evolution.get_trades!(df_demand, clearing_price, cash_restriction)
@@ -220,6 +226,9 @@ function model_step!(model)
     #     # InVaNo.spend_time_individual!(agent, model.τ)
     #     # InVaNo.update_deviations!(agent)
     # end
+
+    # Increment time step
+    model.t += 1
 
     return model
 end
