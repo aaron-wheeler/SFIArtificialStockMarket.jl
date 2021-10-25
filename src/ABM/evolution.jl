@@ -471,16 +471,21 @@ function get_trades!(df, cprice, cash_restriction)
 end
 
 
-# ## Agent Updating (done for each agent individually)
+## Agent Updating (done for each agent individually)
 
-# """
-# Update individual agent financial metrics
+"""
+Update individual agent financial metrics
 
-# From order execution output, update `relative_cash` & `relative_holdings`
-# """
-# function update_rewards!()
-    
-# end
+From order execution output, update `relative_cash` & `relative_holdings`
+"""
+function update_rewards!(df_trades, agent)
+    for i = 1:nrow(df_trades)
+        if df_trades[i, :AgentID] == agent.id
+            agent.relative_holdings = df_trades[i, :demand_xi]
+            agent.relative_cash = df_trades[i, :Current_cash]
+        end
+    end
+end
 
 
 # """
