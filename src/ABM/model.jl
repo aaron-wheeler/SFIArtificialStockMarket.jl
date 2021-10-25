@@ -192,21 +192,14 @@ function model_step!(model)
     # Order execution mechanism here, get_trades()
     df_trades = evolution.get_trades!(df_demand, clearing_price, cash_restriction)
 
-    # Calculate and update individual agent financial rewards
-    base_wage = model.ω * model.τ
-    mean_output = mean(agent.output for agent in allagents(model))
+    # Calculate and update individual agent financial rewards (cash and holdings)
     for agent in scheduled_agents
-        InVaNo.update_rewards!(agent, model.μ, model.λ, base_wage, mean_output)
+        update_rewards!(df_trades, agent)
     end
 
     # Update agent forecasting metrics 
     for agent in scheduled_agents
-
-        # all_other_ids = filter(x -> x != agent.id, collect(allids(model)))
-        # mean_coop = mean(model[id].time_cooperation for id in all_other_ids)
-        # InVaNo.update_output!(agent, model.κ, mean_coop)
-        # InVaNo.update_realised_output!(agent, OGO)
-        # InVaNo.update_realised_output_max!(agent, max_output)
+        update_predict_acc!(agent, model.τ, model.price, model.dividend)
     end
 
 
