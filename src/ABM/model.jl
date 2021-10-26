@@ -110,57 +110,6 @@ end
 """
 Define what happens in the model.
 """
-# function model_step!(model)
-#     scheduled_agents = (model[id] for id in model.scheduler(model))
-
-#     for agent in scheduled_agents
-#         InVaNo.update_norm_coop!(agent, model)
-#         InVaNo.update_norm_shirk!(agent, model)
-#         InVaNo.update_phi!(agent, model.Σ)
-#         InVaNo.update_gamma!(agent)
-#         if model.μ == 1.0
-#             InVaNo.update_rho!(agent, model.λ)
-#         else
-#             agent.ρ = 0.0
-#         end
-#     end
-
-#     for agent in scheduled_agents
-#         if rand(model.rng, Bool)
-#             InVaNo.spend_time_shirking!(agent, model.τ, model.rng)
-#             residual_τ = model.τ - agent.time_shirking
-#             InVaNo.spend_time_cooperation!(agent, residual_τ, model.rng)
-#         else
-#             InVaNo.spend_time_cooperation!(agent, model.τ, model.rng)
-#             residual_τ = model.τ - agent.time_cooperation
-#             InVaNo.spend_time_shirking!(agent, residual_τ, model.rng)
-#         end
-#         InVaNo.spend_time_individual!(agent, model.τ)
-#         InVaNo.update_deviations!(agent)
-#     end
-
-#     OGO = (model.τ * (1 - model.κ)) ^ (1 - model.κ) * (model.τ * model.κ) ^ model.κ
-#     max_output = maximum(agent.output for agent in allagents(model))
-#     for agent in scheduled_agents
-#         all_other_ids = filter(x -> x != agent.id, collect(allids(model)))
-#         mean_coop = mean(model[id].time_cooperation for id in all_other_ids)
-#         InVaNo.update_output!(agent, model.κ, mean_coop)
-#         InVaNo.update_realised_output!(agent, OGO)
-#         InVaNo.update_realised_output_max!(agent, max_output)
-#     end
-
-#     base_wage = model.ω * model.τ
-#     mean_output = mean(agent.output for agent in allagents(model))
-#     for agent in scheduled_agents
-#         InVaNo.update_rewards!(agent, model.μ, model.λ, base_wage, mean_output)
-#     end
-
-#     InVaNo.update_gini_index!(model)
-
-#     return model
-# end
-
-
 function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
