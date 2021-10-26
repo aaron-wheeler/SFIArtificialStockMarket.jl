@@ -139,7 +139,7 @@ function model_step!(model)
     model.price = push!(model.price, clearing_price)
 
     # Order execution mechanism here, get_trades()
-    df_trades = evolution.get_trades!(df_demand, clearing_price, cash_restriction)
+    df_trades = evolution.get_trades!(df_demand, clearing_price, model.cash_restriction)
 
     # Calculate and update individual agent financial rewards (cash and holdings)
     for agent in scheduled_agents
