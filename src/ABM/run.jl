@@ -70,12 +70,13 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] # 50 random seed trial runs?
     
     # # Collect data (ensemble simulation for multiple random seeded models)
-    # adf, mdf = ensemblerun!(models, dummystep, model_step!, 500;
-    #     adata = adata, mdata = mdata, parallel = true)
+    model_runs = 1 # numder of model iterations
+    adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
+        adata = adata, mdata = mdata, parallel = false)
 
     # Collect data (for single model case)
-    adf, mdf = run!(models, dummystep, model_step!, 1;
-        adata = adata, mdata = mdata)
+    # adf, mdf = run!(models, dummystep, model_step!, 500;
+    #     adata = adata, mdata = mdata)
 
     # Create save path
     # savepath = mkpath("../../data/ABM/env=$(properties.env)")
