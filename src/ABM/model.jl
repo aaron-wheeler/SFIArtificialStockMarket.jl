@@ -143,12 +143,12 @@ function model_step!(model)
 
     # Calculate and update individual agent financial rewards (cash and holdings)
     for agent in scheduled_agents
-        update_rewards!(df_trades, agent)
+        evolution.update_rewards!(df_trades, agent)
     end
 
     # Update agent forecasting metrics 
     for agent in scheduled_agents
-        update_predict_acc!(agent, model.τ, model.price, model.dividend)
+        evolution.update_predict_acc!(agent, model.τ, model.price, model.dividend)
     end
 
 
