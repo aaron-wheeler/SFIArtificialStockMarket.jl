@@ -3,11 +3,11 @@ using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
 
-# # Start workers
+# # Start workers (Parallel Computing)
 # using Distributed
 # addprocs(4)
 
-# # Set up package environment on workers
+# # Set up package environment on workers (Parallel Computing)
 # @everywhere begin
 #     using Pkg
 #     Pkg.activate(".")
@@ -18,19 +18,25 @@ using DataFrames
 using CSV
 using Pipe
 
-# # Load packages on workers
+# # Load packages on workers 
+# (Parallel Computing)
 # @everywhere begin
 #     using Agents
 #     using Statistics: mean
 #     using Random
 # end
+
+# (Sequencial Computing)
 using Agents
 using Statistics: mean
 using Random
 
 # # Load model libraries on workers
+# (Parallel Computing)
 # @everywhere cd("src/ABM")
 # @everywhere include("model.jl")
+
+# (Sequencial Computing)
 include("model.jl")
 
 ## Define scenarios and run model
@@ -44,16 +50,17 @@ function let_it_run()
     # #     :time_cooperation, :time_individual, :time_shirking,
     # #     :reward, :output, :realised_output, :realised_output_max]
 
-    # adata = [:relative_cash, :relative_holdings]
+    adata = [:relative_cash, :relative_holdings]
 
     # # mdata = [:gini_index]
 
-    # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
+    mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
 
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds
 
     # Setup parameters (for complex or rational)
+    # complex
     properties = (
         k = 250,
         JX = 0.1,
@@ -62,12 +69,17 @@ function let_it_run()
     
     models = [init_model(; seed, properties...) for seed in seeds] # 50 random seed trial runs?
     
-    # # Collect data
+    # # Collect data (ensemble simulation for multiple random seeded models)
     # adf, mdf = ensemblerun!(models, dummystep, model_step!, 500;
     #     adata = adata, mdata = mdata, parallel = true)
 
-    # # Create save path
+    # Collect data (for single model case)
+    adf, mdf = run!(models, dummystep, model_step!, 1;
+        adata = adata, mdata = mdata)
+
+    # Create save path
     # savepath = mkpath("../../data/ABM/env=$(properties.env)")
+    savepath = mkpath("../../data/ABM/test")
 
     # # Aggregate agent data over replicates
     # adf = @pipe adf |>
@@ -79,6 +91,7 @@ function let_it_run()
     # adf[!, :env] = fill(properties.env, nrow(adf))
     # adf[!, :scenario] = fill(properties.scenario, nrow(adf))
     # CSV.write("$(savepath)/data_$(properties.scenario).csv", adf)
+    CSV.write("$(savepath)/adf_test.csv", adf)
 
     # # Collect aggregated data over steps
     # aggregate_data = @pipe adf |> 
@@ -95,6 +108,7 @@ function let_it_run()
     #     combine(_, mdata[1] .=> mean .=> mdata[1])
     # mdf[!, :scenario] = fill(properties.scenario, nrow(mdf))
     # CSV.write("$(savepath)/mdf_$(properties.scenario).csv", mdf)
+    CSV.write("$(savepath)/mdf_test.csv", mdf)
 end
 
 Random.seed!(44801)
