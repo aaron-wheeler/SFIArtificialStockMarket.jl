@@ -53,9 +53,9 @@ function init_state!(model)
     model.dividend = push!(dividend, init_dividend)
 
     # Include these?
-    model.trading_volume = Vector{Any}(undef, 0)
-    model.volatility = Vector{Any}(undef, 0)
-    model.technical_activity = Vector{Any}(undef, 0)
+    # model.trading_volume = Vector{Any}(undef, 0)
+    # model.volatility = Vector{Any}(undef, 0)
+    # model.technical_activity = Vector{Any}(undef, 0)
     
     # Initialization period, generate historical dividend and prices
     while model.t <= model.initialization_t
@@ -140,6 +140,9 @@ function model_step!(model)
 
     # Order execution mechanism here, get_trades()
     df_trades = evolution.get_trades!(df_demand, clearing_price, model.cash_restriction)
+
+    # Update trading volume vector
+    evolution.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
 
     # Calculate and update individual agent financial rewards (cash and holdings)
     for agent in scheduled_agents

@@ -1,4 +1,5 @@
-# comment before module statement so that VS Code doesn't bug out 
+# comment before module statement so that VS Code doesn't bug out
+
 module evolution
 
 using Agents
@@ -250,7 +251,7 @@ end
 Balance market orders and calculate agent demand. 
 
 At market equilibrium, the specialist obtains the clearing price for the risky asset and rations market orders by the 
-explicit trading constraints `X.......`, ......
+explicit trading constraints `trade_restriction` & `short_restriction`
 Rationing procedure:
     If N - round_error > 0 (i.e. positive)
         Negative difference --> Add extra share(s) to be bought (+1)
@@ -325,7 +326,6 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     end
     round_error = sum(test_demand_round_diff)
     round_error = convert(Int, round_error)
-    test_demand_round_diff
 
     demand_ration = hcat(test_demand_N_convergence, test_demand_round_diff)
 
@@ -339,11 +339,11 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
         init_xi = demand_ration[:, 1], round_xi = demand_ration[:, 2], xi_diff = demand_ration[:, 3])
 
     if ration_imbalance > 0
-        # shuffle and sorts agents by xi_diff, largest negative value to highest positive value
+        # shuffle and sorts agents by xi_diff, largest negative value to largest positive value
         df = df[shuffle(1:nrow(df)), :]
         sort!(df, :xi_diff)
     elseif ration_imbalance < 0
-        # shuffle and sorts agents by xi_diff, largest positive value to highest negative value
+        # shuffle and sorts agents by xi_diff, largest positive value to largest negative value
         df = df[shuffle(1:nrow(df)), :]
         sort!(df, order(:xi_diff), rev=true)
     end
@@ -468,6 +468,26 @@ function get_trades!(df, cprice, cash_restriction)
     select!(df, :AgentID, :Current_cash, :demand_xi, :shares_traded, :profit_t)
     sort!(df)
     return df
+end
+
+
+## Market State Updating
+"""
+Append new day statistics to trading volume vector
+
+Trading volume measured as the number of shares that have changed hands during time t
+
+- How Can Trading Volume Exceed Shares Outstanding?
+https://www.investopedia.com/ask/answers/041015/why-trading-volume-important-investors.asp
+"""
+function update_trading_volume!(num_agents, df_trades, trading_volume)
+    volume_t = 0
+    for i = 1:num_agents
+        if df_trades[i, :shares_traded] > 0
+            volume_t += getindex(df_trades[i, :shares_traded])
+        end
+    end
+    push!(trading_volume, volume_t)
 end
 
 
