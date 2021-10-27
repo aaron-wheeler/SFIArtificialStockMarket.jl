@@ -473,7 +473,7 @@ end
 
 ## Market State Updating
 """
-Append new day statistics to trading volume vector
+Update trading volume vector
 
 Trading volume measured as the number of shares that have changed hands during time t
 
@@ -488,6 +488,17 @@ function update_trading_volume!(num_agents, df_trades, trading_volume)
         end
     end
     push!(trading_volume, volume_t)
+end
+
+"""
+Update historical volatility vector
+
+30-day historical volatility used (standard deviation of the daily gain or loss from each of the past 30 time steps).
+"""
+function update_volatility!(price, volatility)
+    hist_p30 = price[(end-29):(end)]
+    sd_p30 = sqrt((sum((hist_p30 .- mean(hist_p30)).^2))/30)
+    push!(volatility, sd_p30)
 end
 
 

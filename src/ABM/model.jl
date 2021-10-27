@@ -144,6 +144,9 @@ function model_step!(model)
     # Update trading volume vector
     evolution.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
 
+    # Update historical volatility vector
+    evolution.update_volatility!(model.price, model.volatility)
+
     # Calculate and update individual agent financial rewards (cash and holdings)
     for agent in scheduled_agents
         evolution.update_rewards!(df_trades, agent)
