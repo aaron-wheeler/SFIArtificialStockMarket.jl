@@ -79,8 +79,8 @@ function let_it_run()
     #     adata = adata, mdata = mdata)
 
     # Create save path
-    # savepath = mkpath("../../data/ABM/env=$(properties.env)")
-    savepath = mkpath("../../data/ABM/test")
+    # savepath = mkpath("../../data/ABM")
+    savepath = mkpath("../../Data/ABMs/SFI/test")
 
     # # Aggregate agent data over replicates
     # adf = @pipe adf |>
