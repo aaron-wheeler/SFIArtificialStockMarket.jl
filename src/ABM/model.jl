@@ -100,6 +100,8 @@ function init_agents!(model)
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
 
+        a.last_active_j = Vector{Int}(undef, model.num_predictors)
+
         add_agent_single!(a, model) 
     end
 
@@ -116,6 +118,10 @@ function model_step!(model)
 
     # Exogenously determine dividend and post for all agents
     model.dividend = evolution.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+
+    # State vector updating
+
+    # Agent expectation steps
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
     expected_xi = zeros(Float64, 4, 0)
