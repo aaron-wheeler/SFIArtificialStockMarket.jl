@@ -98,9 +98,10 @@ function init_agents!(model)
         
         a.predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
+
         a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
 
-        a.last_active_j = Vector{Int}(undef, model.num_predictors)
+        a.last_active_j = zeros(Int, model.num_predictors)
 
         add_agent_single!(a, model) 
     end
