@@ -535,6 +535,20 @@ function update_predict_acc!(agent, τ, price, dividend)
 end
 
 
+"""
+Update vector that contains the t step that each predictor was last active.
+
+Needed for generalization procedure and offspring forecast variance procedure (both done in GA).
+"""
+function update_tracking_j!(num_predictors, active_predictors, last_active_j, t)
+    for i in 1:num_predictors
+        if in.(i, Ref(active_predictors)) == true
+            last_active_j[i] = t
+        end
+    end
+end
+
+
 # **SAVING GA STUFF FOR AFTER INTEGRATION TESTING
 # """
 # Check recombination status. 
