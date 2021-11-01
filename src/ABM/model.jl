@@ -83,9 +83,9 @@ function init_agents!(model)
     T = model.warm_up_t + model.recorded_t # Total sim time
     GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
     n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
-    δ_dist_1 = repeat(Vector(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n)
-    δ_dist_2 = repeat([model.k, model.k], n)
-    δ_dist_3 = repeat(Vector((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n)
+    δ_dist_1 = repeat(Vector{Int}(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n) # - half of k_var
+    δ_dist_2 = repeat([model.k, model.k], n) # middle portion of k_var
+    δ_dist_3 = repeat(Vector{Int}((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n) # + half of k_var
     δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
     for id in 1:model.num_agents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
         a = Trader(

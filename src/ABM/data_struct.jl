@@ -91,7 +91,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     fitness_j::Vector{Float64} = []
     expected_pd::Vector{Float64} = [] # Remove this? Is there one of these for each predictor? Why a vector?
     demand_xi::Int = 0 # Remove this?
-    δ::Vector{Float64} = []
+    δ::Vector{Int} = []
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []
 
