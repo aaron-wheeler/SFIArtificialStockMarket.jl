@@ -58,10 +58,11 @@ function init_state!(model)
     # model.technical_activity = Vector{Any}(undef, 0)
     
     # Initialization period, generate historical dividend and prices
-    while model.t <= model.initialization_t
+    price_div_history_t = 1
+    while price_div_history_t <= model.initialization_t
         model.dividend = evolution.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
         model.price = push!(model.price, (last(model.dividend) / model.r))
-        model.t += 1
+        price_div_history_t += 1
     end
 
     # generate first state bit vector sequence
