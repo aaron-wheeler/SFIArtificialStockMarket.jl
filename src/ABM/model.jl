@@ -98,9 +98,9 @@ function init_agents!(model)
         
         a.predictors = evolution.init_predictors(model.num_predictors, model.σ_pd)
         a.δ, a.predict_acc, a.fitness_j = evolution.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
-
-        a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
-
+        # a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
+        a.active_predictors = Vector{Int}(undef, 0)
+        a.forecast = Vector{Any}(undef, 0)
         a.last_active_j = zeros(Int, model.num_predictors)
 
         add_agent_single!(a, model) 
@@ -120,16 +120,24 @@ function model_step!(model)
     # Exogenously determine dividend and post for all agents
     model.dividend = evolution.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
 
-    # State vector updating
+    # Update market state vector
+    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = evolution.update_market_vector(model.price, model.dividend, model.r)
+    bit11 = 1
+    bit12 = 0
+    model.state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
 
     # Agent expectation steps
+    for agent in scheduled_agents
+        agent.active_predictors, agent.forecast = evolution.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j)
+        evolution.update_tracking_j!(model.num_predictors, agent.active_predictors, agent.last_active_j, model.t)
+    end
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
     expected_xi = zeros(Float64, 4, 0)
     relative_cash_t = Vector{Float64}(undef, 0)
     relative_holdings_t = Vector{Int}(undef, 0)
     
-    for agent in scheduled_agents # will this work in agent id order? What is scheduled_agents order?
+    for agent in scheduled_agents # will this work in agent id order? What is scheduled_agents order? -> Set as `randomly` rn
         # safer to do this all in one data structure and then sort by agent id in next step to ensure consistency?
         expected_xi = hcat(expected_xi, agent.forecast)
         relative_cash_t = push!(relative_cash_t, agent.relative_cash)
