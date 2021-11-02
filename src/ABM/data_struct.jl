@@ -48,6 +48,7 @@ Base.@kwdef mutable struct ModelProperties
     short_restriction::Float64 = -5.0
     cash_restriction::Float64 = -2000.0
     itermax::Int = 500
+    num_elimination::Int = 20
 end
 
 # """
