@@ -31,7 +31,7 @@ Base.@kwdef mutable struct ModelProperties
     warm_up_t::Int = 250000
     recorded_t::Int = 10000
     k::Int # = 250 for complex regime
-    JX::Float64 # = 0.1 for complex regime
+    pGAcrossover::Float64 # = 0.1 for complex regime
     τ::Int # = 75 for complex regime
     num_shares::Int = 25
     r::Float64 = 0.1

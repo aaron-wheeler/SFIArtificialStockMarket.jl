@@ -63,7 +63,7 @@ function let_it_run()
     # complex
     properties = (
         k = 250,
-        JX = 0.1,
+        pGAcrossover = 0.1,
         τ = 75
     )
     

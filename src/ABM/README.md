@@ -96,7 +96,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `δ` : an agent's asynchronous sequence of random learning frequency (term used for GA selection)
   - `a`: linear forecasting parameter; uniform about [`0.7, 1.2`] # **TODO: Remove from this spot?**
   - `b`: linear forecasting parameter; uniform about [`-10.0, 19.002`] # **TODO: Remove from this spot?**
-  - `JX`: crossover for genetic algorithm (probability of recombination)
+  - `pGAcrossover`: crossover for genetic algorithm (probability of recombination)
   - `τ`: relevant horizon length for accuracy-updating parameter for predictor # **TODO: Move to model properties?**
   - `s`: fitness measure specificity; number of bits that are set in the predictor's condition array 
 
@@ -146,8 +146,8 @@ After an initialization period `initialization_t`, the model undergoes warm-up p
 - `evolution.GA!`:
 
   According to the exploration rate of the market regime (`model.regime`), the genetic algorithm will be invoked: 
-  - `Complex` : every `k = 250` periods on average; `JX =  0.1, τ = 75`
-  - `Rational` : every `k = 1000` periods on average;  `JX =  0.3, τ = 150`
+  - `Complex` : every `k = 250` periods on average; `pGAcrossover =  0.1, τ = 75`
+  - `Rational` : every `k = 1000` periods on average;  `pGAcrossover =  0.3, τ = 150`
 
 #### Stepping function
 
