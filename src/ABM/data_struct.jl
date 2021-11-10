@@ -40,6 +40,10 @@ Base.@kwdef mutable struct ModelProperties
     # ε::Float64
     σ_ε::Float64 = 0.0743
     σ_pd::Float64 = 4.0
+    a_min::Float64 = 0.7
+    a_max::Float64 = 1.2
+    b_min::Float64 = -10.0
+    b_max::Float64 = 19.002
     # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
     k_var::Int = 40
     C::Float64 = 0.005

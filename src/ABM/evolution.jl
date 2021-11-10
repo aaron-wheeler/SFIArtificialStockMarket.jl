@@ -108,12 +108,12 @@ Agent `predictors` vector is coupled to unique `id`.
 
 **Should accuracy and fitness measure also be appended to each predictor?
 """
-function init_predictors(num_predictors, σ_pd) # Add an identifier? 
+function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max) # Add an identifier? 
     predictors = Vector{Any}(undef, 0) 
     for i in 1:(num_predictors-1) # minus one so that we can add default predictor
         heterogeneity = Vector{Any}(undef, 3)
-        heterogeneity[1] = rand(Uniform(0.7,1.2)) # a
-        heterogeneity[2] = rand(Uniform(-10.0, 19.002)) # b 
+        heterogeneity[1] = rand(Uniform(a_min, a_max)) # a
+        heterogeneity[2] = rand(Uniform(b_min, b_max)) # b 
         heterogeneity[3] = σ_pd # initial σ_i = σ_pd
         bit_vec = Vector{Any}(undef, 12)
         Distributions.sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec)
