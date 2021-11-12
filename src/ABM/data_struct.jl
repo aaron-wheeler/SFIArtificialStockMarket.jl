@@ -28,6 +28,7 @@ Base.@kwdef mutable struct ModelProperties
     volatility::Vector{Float64} = []
     technical_activity::Vector{Int} = []
     initialization_t::Int = 499
+    generalization_t::Int = 4000
     warm_up_t::Int = 250000
     recorded_t::Int = 10000
     k::Int # = 250 for complex regime

@@ -26,7 +26,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `bit10` : technical bit; Price > 500-period MA (`State.bit10`)
   - `bit11` : experimental control; always on: 1 (`State.bit11`)
   - `bit12` : experimental control; always off: 0 (`State.bit12`)
-  - `initialization_t` : number of time steps for initialization period of model (default = `500`)
+  - `initialization_t` : number of time steps for initialization period of model (default = `499`)
+  - `generalization_t` : number of inactive time steps until generalization is invoked (default = `4000`)
   - `warm_up_t` : number of time steps for preliminary pre-S.S. period of model (default = `250,000`)
   - `recorded_t` : number of time steps for post-S.S period of model (default = `10,000`)
   - `k` : frequency of learning for agents across the simulation; average number of time steps determined by market regime 
