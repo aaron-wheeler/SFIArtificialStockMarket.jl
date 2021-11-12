@@ -170,7 +170,7 @@ function model_step!(model)
 
     # Update agent forecasting metrics 
     for agent in scheduled_agents
-        evolution.update_predict_acc!(agent, model.τ, model.price, model.dividend)
+        evolution.update_predict_acc!(agent.predict_acc, agent.active_predictors, agent.predictors, model.τ, model.price, model.dividend)
     end
 
 

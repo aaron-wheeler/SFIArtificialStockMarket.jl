@@ -510,7 +510,7 @@ Update individual agent financial metrics
 
 From order execution output, update `relative_cash` & `relative_holdings`
 """
-function update_rewards!(df_trades, agent)
+function update_rewards!(df_trades, agent) # input seperate agent elements as arguments instead of entire agent struct?
     for i = 1:nrow(df_trades)
         if df_trades[i, :AgentID] == agent.id
             agent.relative_holdings = df_trades[i, :demand_xi]
@@ -523,12 +523,12 @@ end
 """
 Update accuracy of each active predictor. 
 """
-function update_predict_acc!(agent, τ, price, dividend)
-    for i = 1:length(agent.predict_acc)
-        if i .∈ Ref(agent.active_predictors)
-            a_j = agent.predictors[i][1]
-            b_j = agent.predictors[i][2]
-            agent.predict_acc[i] = (1-(1/τ))*agent.predict_acc[i] +
+function update_predict_acc!(predict_acc, active_predictors, predictors, τ, price, dividend)
+    for i = 1:length(predict_acc)
+        if i .∈ Ref(active_predictors)
+            a_j = predictors[i][1]
+            b_j = predictors[i][2]
+            predict_acc[i] = (1-(1/τ))*predict_acc[i] +
                 (1/τ)*(((price[end] + dividend[end]) - (a_j*(price[end-1] + dividend[end-1]) + b_j))^2)
         end
     end
