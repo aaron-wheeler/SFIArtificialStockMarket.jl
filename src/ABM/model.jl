@@ -101,7 +101,7 @@ function init_agents!(model)
         # a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
-        a.last_active_j = zeros(Int, model.num_predictors)
+        a.active_j_records = zeros(Int, model.num_predictors, 2)
 
         add_agent_single!(a, model) 
     end
@@ -129,7 +129,7 @@ function model_step!(model)
     # Agent expectation steps
     for agent in scheduled_agents
         agent.active_predictors, agent.forecast = evolution.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j)
-        evolution.update_tracking_j!(model.num_predictors, agent.active_predictors, agent.last_active_j, model.t)
+        evolution.update_active_j_records!(model.num_predictors, agent.active_predictors, agent.active_j_records, model.t)
     end
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`

@@ -99,7 +99,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     δ::Vector{Int} = []
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []
-    last_active_j::Vector{Int} = []
+    active_j_records::Matrix{Int} = []
 
     # specific to predictor, remove?
     σ_i::Float64 

@@ -536,14 +536,17 @@ end
 
 
 """
-Update vector that contains the t step that each predictor was last active.
+Update matrix that contains information about each predictors historical use.
 
-Needed for generalization procedure and offspring forecast variance procedure (both done in GA).
+First column records whether or not each predictor has ever been active before, `0`-> No, `1`-> Yes.
+Second column records the last t step that each predictor was either initiated, active, replaced, or generalized.
+Both columns needed for generalization procedure and GA offspring forecast variance procedure.
 """
-function update_tracking_j!(num_predictors, active_predictors, last_active_j, t)
+function update_active_j_records!(num_predictors, active_predictors, active_j_records, t)
     for i in 1:num_predictors
         if in.(i, Ref(active_predictors)) == true
-            last_active_j[i] = t
+            active_j_records[i, 1] = 1
+            active_j_records[i, 2] = t
         end
     end
 end
