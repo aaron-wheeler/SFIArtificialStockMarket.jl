@@ -53,6 +53,10 @@ Base.@kwdef mutable struct ModelProperties
     cash_restriction::Float64 = -2000.0
     itermax::Int = 500
     num_elimination::Int = 20
+    pcond_mut::Float64 = 0.03
+    pparam_mut_long::Float64 = 0.2
+    pparam_mut_short::Float64 = 0.2
+    percent_mut_short::Float64 = 0.05
 end
 
 # """

@@ -55,6 +55,10 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `cash_restriction` : minimum cash allowed at any time period for each agent (default = `-2000.0`)
   - `itermax` : number of iterations used to obtain clearing price (default = `500`)
   - `num_elimination` : number of predictors to be replaced with every GA implementation (default = `20`)
+  - `pcond_mut` : probability that a condition bit will be flipped in GA mutation procedure (default = `0.03`)
+  - `pparam_mut_long` : probability that a forecasting param is pulled from wide dist in GA mutation (default = `0.2`)
+  - `pparam_mut_short` : probability that a forecasting param is pulled from short dist in GA mutation (default  = `0.2`)
+  - `percent_mut_short` : percent difference of current value to use for short dist range in GA mutation (default= `0.05`)
 
 2. A State struct (`State`) defines the varying parameters of the applied simulation treatments:
   - `t`: current time step in simulation

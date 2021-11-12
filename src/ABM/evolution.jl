@@ -10,6 +10,7 @@ using StatsBase
 using ForwardDiff
 using DataFrames
 using MLStyle
+using Statistics
 
 ## Update Market State 
 
