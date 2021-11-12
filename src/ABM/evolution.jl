@@ -553,263 +553,252 @@ function update_active_j_records!(num_predictors, active_predictors, active_j_re
 end
 
 
-# **SAVING GA STUFF FOR AFTER INTEGRATION TESTING
-# """
-# Check recombination status. 
+## Genetic Algorithm Invocation (done for each agent individually)
+"""
+Recombination via GA_crossover(), occurs with probability `pGAcrossover`
+
+Crossover procedure:
+- Offspring constructed from two unique parents
+- Each parent is chosen via tournament selection from `elite_j`
+- Tournament selection is randomized and selects larger of two `fitness_j` values
+    - If parents with same fitness are randomly selected, one is randomly picked over other (see: argmax())
+    - *Replace above process with drawing again? Would this make any difference at all?
+- Offspring condition statement:
+    - Uniform crossover of both parent's condition statements
+    - Each bit constructed one at a time from corresponding parent's bits with equal probability
+- Offspring forecasting parameters:
+    - The a, b parameters of the offspring is chosen randomly w/ equal prob from following 3 methods:
+        1. Randomly adopt one of the parents' a, b (all from one or all from the other) with equal probability
+        2. Component-wise crossover; randomly choose a from one parent and b from the other with equal probability
+        3. Take weighted avg (1/σ_j) of two parents a, b. Weights normalized to sum to 1. 
+- Offspring forecast variance:
+    - Inherit average var of parents, unless both of these parent predictors have never been matched before
+    (never been an active predictor before). In this case, the offspring will adopt the median forecast error over
+    all elite predictors
+"""
+function GA_crossover(elite_j, df_GA, active_j_records)
+    # tournament selection
+    tournament_C1 = StatsBase.samplepair(elite_j)
+    tournament_C2 = StatsBase.samplepair(elite_j)
+    fittest_C1 = argmax([df_GA[tournament_C1[1], :fitness_j], df_GA[tournament_C1[2], :fitness_j]])
+    parent_1 = tournament_C1[fittest_C1]
+    fittest_C2 = argmax([df_GA[tournament_C2[1], :fitness_j], df_GA[tournament_C2[2], :fitness_j]])
+    parent_2 = tournament_C2[fittest_C2]
+
+    # parent condition statements
+    parent_1_cond = df_GA[parent_1, :predictors][4:15]
+    parent_2_cond = df_GA[parent_2, :predictors][4:15]
+
+    # offspring condition statement
+    offspring_cond = Any[]
+
+    # uniform crossover
+    function cond_cross(offspring_cond, bit)
+        if rand([1, 2]) == 1
+            push!(offspring_cond, parent_1_cond[bit])
+        else
+            push!(offspring_cond, parent_2_cond[bit])
+        end
+    end
+
+    for bit in 1:length(parent_1_cond)
+        cond_cross(offspring_cond, bit)
+    end
     
-# Will use predictor accuracy, fitness measure, and `δ` to determine if selected for recombination via GA.
+    # parent forecast parameters
+    parent_1_params = df_GA[parent_1, :predictors][1:2]
+    parent_2_params = df_GA[parent_2, :predictors][1:2]
 
-# **Return boolean here, followed by if statment holding GA function? 
-# ** if statement t - last_t_δ == δ
-# """
-# function check_recombination()
+    # parent forecast variance
+    parent_1_var = df_GA[parent_1, :predictors][3]
+    parent_2_var = df_GA[parent_2, :predictors][3]
+
+    # offspring forecast parameters
+    offspring_params = Any[]
+
+    # randomly choose one of three crossover methods
+    function param_cross(offspring_params, parent_1_params, parent_2_params, parent_1_var, parent_2_var)
+        r = rand([1, 2, 3])
+        if r == 1
+            method_1 = rand([1, 2])
+            if method_1 == 1
+                push!(offspring_params, parent_1_params)
+            else
+                push!(offspring_params, parent_2_params)
+            end
+        elseif r == 2
+            method_2 = rand([1, 2])
+            if method_2 == 1
+                push!(offspring_params, parent_1_params[1]) # a
+                push!(offspring_params, parent_2_params[2]) # b
+            else
+                push!(offspring_params, parent_2_params[1]) # a
+                push!(offspring_params, parent_1_params[2]) # b
+            end
+        else r == 3
+            norm_weight_1 = (1/parent_1_var) / ((1/parent_1_var) + (1/parent_2_var))
+            norm_weight_2 = (1/parent_2_var) / ((1/parent_1_var) + (1/parent_2_var))
+            a = ((norm_weight_1*parent_1_params[1]) + (norm_weight_2*parent_2_params[1])) / (norm_weight_1 + norm_weight_2)
+            b = ((norm_weight_1*parent_1_params[2]) + (norm_weight_2*parent_2_params[2])) / (norm_weight_1 + norm_weight_2)
+            push!(offspring_params, a)
+            push!(offspring_params, b)
+        end
+    end
+
+    param_cross(offspring_params, parent_1_params, parent_2_params, parent_1_var, parent_2_var)
+
+    # offspring forecast variance
+    offspring_var = Any[] # does this need to be vector? just set equal to value in if statement?
+
+    # median var of all elite if never been active before, average of parents otherwise
+    if active_j_records[parent_1, 1] == 0 && active_j_records[parent_2, 1] == 0
+        elite_var = df_GA[:, :predict_acc]
+        filter!(x -> !(isnan(x)), elite_var)
+        push!(offspring_var, median(elite_var))
+    else
+        push!(offspring_var, (parent_1_var + parent_2_var)/2)
+    end
+
+    # returning new crossed over predictor
+    crossed_j = vcat(offspring_params, offspring_var, offspring_cond)
     
-# end
+    return crossed_j
+end
 
 
-# """
-# Update variance estimate of each predictor `σ_i` to its current active value `predict_acc`. 
-# """
-# function update_variance_j!()
+"""
+Recombination via GA_mutation(), occurs with probability `1 - pGAcrossover`
+
+Mutation procedure:
+- Offspring constructed from one parent among the elite
+- Unique parent is chosen via tournament selection from `elite_j`
+- Tournament selection is randomized and selects larger of two `fitness_j` values
+    - If parents with same fitness are randomly selected, one is randomly picked over other (see: argmax())
+    - *Replace above process with drawing again? Would this make any difference at all?
+- Offspring condition statement:
+    - The offspring adopts the parents condition bits which are "flipped" at random
+    - With probability 0.03, each bit in vector undergoes the following:
+        0 -> missing (prob 2/3), 0 -> 1 (prob 1/3)
+        1 -> missing (prob 2/3), 1 -> 0 (prob 1/3)
+        missing -> 0 (prob 1/3), missing -> 1 (prob 1/3), unchanged (prob 1/3)
+- Offspring forecasting parameters:
+    - The offspring adopts the parents a, b with random numbers added to them
+    - Mutation may do one of three things, independently for each parameter:
+        1. With prob 0.2, the parameter is changed to random value in its allowable range
+        2. With prob 0.2, the parameter is chosen randomly from a uniform distribution from its current value ± 0.05 * its 
+           max-min range. Values outside the allowable range are set to the respective max or min. 
+        3. With prob 0.6, the parameter is left unchanged. 
+- Offspring forecast variance:
+    - The offspring adopts the median forecast error over all elite predictors
+"""
+function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, pparam_mut_long, pparam_mut_short, percent_mut_short)
+    # tournament selection
+    tournament_M1 = StatsBase.samplepair(elite_j)
+    fittest_M1 = argmax([df_GA[tournament_M1[1], :fitness_j], df_GA[tournament_M1[2], :fitness_j]])
+    parent_1 = tournament_M1[fittest_M1]
     
-# end
+    # parent condition statement
+    parent_1_cond = df_GA[parent_1, :predictors][4:15]
 
+    # offspring condition statement
+    offspring_cond = Any[]
 
-# """
-# Update fitness measure of each predictor. 20 Worst rules will be replaced. 
-# """
-# function update_fitness_j!()
+    # Mutation procedure for offspring condition bits
+    function cond_mutat(offspring_cond, bit)
+        if ismissing(parent_1_cond[bit]) == true
+            r = rand([1, 2, 3])
+            if r == 1
+                push!(offspring_cond, 0)
+            elseif r == 2
+                push!(offspring_cond, 1)
+            else
+                push!(offspring_cond, missing)
+            end
+        elseif parent_1_cond[bit] == 0
+            if rand() ≤ 2/3
+                push!(offspring_cond, missing)
+            else
+                push!(offspring_cond, 1)
+            end
+        else
+            if rand() ≤ 2/3
+                push!(offspring_cond, missing)
+            else
+                push!(offspring_cond, 0)
+            end
+        end
+    end
+
+    for bit in 1:length(parent_1_cond)
+        if rand() ≤ pcond_mut
+            cond_mutat(offspring_cond, bit)
+        else
+            push!(offspring_cond, parent_1_cond[bit])
+        end
+    end
     
-# end
+    # parent forecast parameters
+    parent_1_params = df_GA[parent_1, :predictors][1:2]
 
+    # offspring forecast parameters
+    offspring_params = Any[]
 
+    # randomly choose one of three mutation methods
+    function param_mutat(offspring_params, parent_1_params)
+        # for a
+        r = rand()
+        if r > (pparam_mut_long + pparam_mut_short)
+            a = parent_1_params[1]
+        elseif r ≤ pparam_mut_long
+            a = rand(Uniform(a_min, a_max)) 
+        else
+            a = rand(Uniform((parent_1_params[1] - 
+                        (percent_mut_short*(a_max - a_min))), (parent_1_params[1] + (percent_mut_short*(a_max - a_min)))))
+            # setting param to bound values if it exceeds allowable range
+            if a < a_min
+                a = a_min
+            elseif a > a_max
+                a = a_max
+            end
+        end
 
+        # for b
+        r = rand()
+        if r > (pparam_mut_long + pparam_mut_short)
+            b = parent_1_params[2]
+        elseif r ≤ pparam_mut_long
+            b = rand(Uniform(b_min, b_max)) 
+        else
+            b = rand(Uniform((parent_1_params[2] - 
+                        (percent_mut_short*(b_max - b_min))), (parent_1_params[2] + (percent_mut_short*(b_max - b_min)))))
+            # setting param to bound values if it exceeds allowable range
+            if b < b_min
+                b = b_min
+            elseif b > b_max
+                b = b_max
+            end
+        end
 
-# ### -------IRRELEVANT PREV ABM STUFF------- ###
+        push!(offspring_params, a)
+        push!(offspring_params, b)
+    end
 
-# """
-# Set initial values for δ depending on agent value type.
-# """
-# function init_delta(status)
-#     δ_dict = Dict(
-#         :ST => 2/3,
-#         :O => 1,
-#         :SE => 2/3,
-#         :C => 1/3
-#     )
-#     return δ_dict[status]
-# end
+    param_mutat(offspring_params, parent_1_params)
 
+    # offspring forecast variance
+    offspring_var = Any[] # does this need to be vector? just set equal to value in if statement?
 
-# """
-#     `find_peers!(agent, model) → ids`
+    # median var of all elite
+    elite_var = df_GA[:, :predict_acc]
+    filter!(x -> !(isnan(x)), elite_var)
+    push!(offspring_var, median(elite_var))
+    
+    # returning new mutated predictor
+    mutated_j = vcat(offspring_params, offspring_var, offspring_cond)
+    
+    return mutated_j
+end
 
-# Construct agent's peer group depending on the given `model.env`.
-
-# - `"Global"` → Collect all agent ids in the model in a list, including self.
-# - `"Neighbours"` → Collect local neighbours of `agent` in a list, excluding self. Number of 
-# neighbours depends on chosen GridSpace (i.e. `periodic` and `metric` keywords).
-# - `"Random"` → Collect a random list of agent ids with length `model.num_peers`, excluding 
-# self.
-# """
-# function find_peers!(agent, model)
-#     if model.env == "Global"
-#         agent.peers = collect(allids(model))
-#     elseif model.env == "Neighbours"
-#         agent.peers = collect(nearby_ids(agent, model))
-#     elseif model.env == "Random"
-#         agent.peers = @pipe collect(allids(model)) |>
-#             filter!(id -> id != agent.id, _) |>
-#             shuffle!(model.rng, _) |>
-#             rand(model.rng, _, model.num_peers)
-#     end
-# end
-
-# ## Model logic
-
-# """
-#     `update_norm_coop!(agent, model)`
-
-# Update cooperation norm perceived by agent.
-# Sums up cooperation times of agent's peers (see `find_peers()`) and calculates their mean.
-# Effective adjustment of agent's cooperation norm is modified by `model.h`.
-# """
-# function update_norm_coop!(agent, model)
-#     agent.norm_coop = 
-#         (1-model.h) * agent.norm_coop + 
-#         model.h * mean(model[id].time_cooperation for id in agent.peers)
-# end
-
-# """
-#     `update_norm_shirk!(agent, model)`
-
-# Update shirking norm perceived by agent.
-# Sums up shirking times of agent's peers (see `find_peers()`) and calculates their mean.
-# Effective adjustment of agent's shirking norm is modified by `model.h`.
-# """
-# function update_norm_shirk!(agent, model)
-#     agent.norm_shirk = 
-#         (1-model.h) * agent.norm_shirk + 
-#         model.h * mean(model[id].time_shirking for id in agent.peers)
-# end
-
-# """
-# Update agent's need for autonomy (ϕ).
-# """
-# function update_phi!(agent, Σ)
-#     if Σ == 0.5 # no monitoring
-#         agent.ϕ = 0.0
-#     else # monitoring 
-#         if agent.status == :O
-#             agent.ϕ = (Σ - 0.5) * agent.norm_shirk * agent.δ
-#         elseif agent.status == :C
-#             agent.ϕ = (0.5 - Σ) * agent.norm_shirk * agent.δ
-#         else
-#             agent.ϕ = 0.0
-#         end
-#     end
-# end
-
-# """
-# Update agent's willingness to cooperate (γ).
-# """
-# function update_gamma!(agent)
-#     if agent.status == :ST
-#         agent.γ = 0.5 * agent.norm_coop * agent.δ
-#     elseif agent.status == :SE
-#         agent.γ = -0.5 * agent.norm_coop * agent.δ
-#     else
-#         agent.γ = 0.0
-#     end
-# end
-
-# """
-# Update agent's responsiveness to rewards (ρ).
-# """
-# function update_rho!(agent, λ)
-#     if agent.status == :SE
-#         if λ == 1.0 # cooperative
-#             agent.ρ = 0.1 * agent.norm_coop * agent.δ
-#         else # competitive
-#             agent.ρ = -0.5 * agent.norm_coop * agent.δ
-#         end
-#     elseif agent.status == :ST
-#         if λ == 1.0
-#             agent.ρ = 0.5 * agent.norm_coop * agent.δ
-#         else 
-#             agent.ρ = -0.1 * agent.norm_coop * agent.δ
-#         end
-#     else
-#         agent.ρ = 0.0
-#     end
-# end
-
-# """
-# Update time that an agent spends on shirking.
-
-# Create triangular distribution for agent and make a random draw from that distribution.
-# Calculate shirking time and bound it between the natural limits of 0 and (residual) τ.
-# """
-# function spend_time_shirking!(agent, τ, rng)
-#     a = agent.norm_shirk - agent.norm_shirk * agent.δ
-#     b = agent.norm_shirk + agent.norm_shirk * agent.δ
-#     c = agent.norm_shirk + agent.ϕ
-#     dist = TriangularDist(a, b, c)
-#     agent.time_shirking = @pipe rand(rng, dist) |>
-#         max(_, 0) |> # 0 or higher
-#         min(_, τ) # τ or lower
-# end
-
-# """
-# Update time that an agent spends on cooperation.
-
-# Create triangular distribution for agent and make a random draw from that distribution.
-# Calculate cooperation time and bound it between the natural limits of 0 and (residual) τ.
-# """
-# function spend_time_cooperation!(agent, τ, rng)
-#     a = agent.norm_coop - agent.norm_coop * agent.δ
-#     b = agent.norm_coop + agent.norm_coop * agent.δ
-#     c = agent.norm_coop + agent.γ + agent.ρ
-#     dist = TriangularDist(a, b, c)
-#     agent.time_cooperation = @pipe rand(rng, dist) |>
-#         max(_, 0) |> # 0 or higher
-#         min(_, τ) # τ or lower
-# end
-
-# """
-# Update time that an agent spends on individual tasks.
-
-# Calculate time spent on individual tasks dependent on maximum working time,
-# cooperation time and shirking time.
-# """
-# function spend_time_individual!(agent, τ)
-#     agent.time_individual = τ - agent.time_cooperation - agent.time_shirking
-#     isapprox(agent.time_individual, 0.0, atol=10^-15) && (agent.time_individual = 0.0)
-# end
-
-# """
-# Update agent's deviations from cooperation and shirking norm.
-# """
-# function update_deviations!(agent)
-#     agent.deviation_norm_coop = agent.time_cooperation - agent.norm_coop
-#     agent.deviation_norm_shirk = agent.time_shirking - agent.norm_shirk
-# end
-
-# """
-# Update agent's output based on task interdependency κ, agent's time spent on individual
-# tasks and the mean cooperation time of all employees.
-# """
-# function update_output!(agent, κ, mean_coop)
-#     agent.output = agent.time_individual ^ (1 - κ) * mean_coop ^ κ
-# end
-
-
-# """
-# Update agents' realised output as a percentage ratio of their own output and the 
-# optimal group output (OGO).
-# """
-# function update_realised_output!(agent, OGO)
-#     agent.realised_output = (agent.output / OGO) * 100 
-# end
-
-# """
-# Update agents' realised output as a percentage ratio of their own output and the 
-# highest individual output of all agents.
-# """
-
-# function update_realised_output_max!(agent, max_output)
-#     agent.realised_output_max = (agent.output / max_output) * 100 
-# end
-
-# """
-# Update agent's reward according to scenario parameters.
-
-# If no PFP schemes are implemented (μ = 0.0), then only the base wage (ω) is paid.
-# Otherwise PFP schemes result in two possible reward calculations on top of the base wage (ω):
-# - Competitive settings pay for personal output (see `update_output!`).
-# - Cooperative settings pay for mean output across all agents.
-# """
-# function update_rewards!(agent, μ, λ, base_wage, mean_output)
-#     agent.reward = base_wage + μ * ((1 - λ) * agent.output + λ * mean_output)
-# end
-
-# """ 
-# Update Gini Coefficient of reward inequality within the population of employees. 
-
-# Since the data consists only of positive values, the equation implemented 
-# as a simplification of the usual notation based on the relative mean difference. 
-# See https://www.statsdirect.com/help/nonparametric_methods/gini_coefficient.htm. 
-# """
-# function update_gini_index!(model)
-#     sorted_reward = (agent.reward for agent in allagents(model)) |>
-#         collect |>
-#         sort
-#     share = sorted_reward ./ sum(sorted_reward)
-#     n = length(share)
-#     index = 1:1:n |> collect
-#     coeff = 2 .* index .- n .- 1
-#     model.gini_index = sum(coeff .* share) / (n .* sum(share))
-# end   
 
 end
  
