@@ -29,33 +29,13 @@ end
 Initialize market state.
 """
 function init_state!(model)
+    # instantiate price and dividend
     dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
     price = Vector{Float64}(undef, 0)
-    init_price = init_dividend / model.r
-
-    # # Initialize all these by making default value in data_struct.jl?
-    # model.t = 1
-    # model.bit1 = 0 
-    # model.bit2 = 0
-    # model.bit3 = 0
-    # model.bit4 = 0
-    # model.bit5 = 0
-    # model.bit6 = 0
-    # model.bit7 = 0
-    # model.bit8 = 0
-    # model.bit9 = 0
-    # model.bit10 = 0
-    # model.bit11 = 1
-    # model.bit12 = 0
-    
+    init_price = init_dividend / model.r    
     model.price = push!(price, init_price)
     model.dividend = push!(dividend, init_dividend)
-
-    # Include these?
-    # model.trading_volume = Vector{Any}(undef, 0)
-    # model.volatility = Vector{Any}(undef, 0)
-    # model.technical_activity = Vector{Any}(undef, 0)
     
     # Initialization period, generate historical dividend and prices
     price_div_history_t = 1
@@ -66,10 +46,7 @@ function init_state!(model)
     end
 
     # generate first state bit vector sequence
-    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = evolution.update_market_vector(model.price, model.dividend, model.r) # Have to append model.X to each bit?
-    bit11 = 1
-    bit12 = 0
-    model.state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
+    model.state_vector = evolution.update_market_vector(model.price, model.dividend, model.r)
 
     return model
 end
@@ -121,10 +98,7 @@ function model_step!(model)
     model.dividend = evolution.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
 
     # Update market state vector
-    bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10 = evolution.update_market_vector(model.price, model.dividend, model.r)
-    bit11 = 1
-    bit12 = 0
-    model.state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
+    model.state_vector = evolution.update_market_vector(model.price, model.dividend, model.r)
 
     # Agent expectation steps
     for agent in scheduled_agents

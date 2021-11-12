@@ -95,9 +95,17 @@ function update_market_vector(price, dividend, r)
         bit10 = 1
     else
         bit10 = 0
-    end   
+    end
+
+    # Default bits, always on/off
+    bit11 = 1
     
-    return bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10
+    bit12 = 0
+    
+    # Construct vector
+    state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
+    
+    return state_vector
 end
 
 ## Initialization (done for each agent individually)
