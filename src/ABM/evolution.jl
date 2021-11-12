@@ -667,7 +667,7 @@ end
 
 
 """
-Recombination via GA_mutation(), occurs with probability `1 - pGAcrossover`
+Recombination via GA_mutation(), occurs with probability (1 - `pGAcrossover`)
 
 Mutation procedure:
 - Offspring constructed from one parent among the elite
