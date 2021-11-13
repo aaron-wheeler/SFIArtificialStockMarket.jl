@@ -71,7 +71,7 @@ function init_agents!(model)
             pos = (1,1),
             relative_cash = model.init_cash,
             σ_i = model.σ_pd,
-            active_j_records = zeros(Int, model.num_predictors, 2)
+            # active_j_records = zeros(Int, model.num_predictors, 2)
         )
         
         a.predictors = evolution.init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
@@ -79,7 +79,7 @@ function init_agents!(model)
         # a.active_predictors, a.forecast = evolution.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
-        # a.active_j_records = zeros(Int, model.num_predictors, 2)
+        a.active_j_records = zeros(Int, model.num_predictors, 2)
 
         add_agent_single!(a, model) 
     end

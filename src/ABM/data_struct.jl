@@ -94,7 +94,7 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line means 
     id::Int
     pos::Dims{2}
-    relative_cash::Float64 
+    relative_cash::Float64
     relative_holdings::Int = 1
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
@@ -104,13 +104,14 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     δ::Vector{Int} = []
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []
-    active_j_records::Matrix{Int, 2}
+    # active_j_records::Matrix{Int, 2}
+    active_j_records::Vector{Any} = []
 
     # specific to predictor, remove?
-    σ_i::Float64 
+    σ_i::Float64
     # a::Vector{Float64} = []
     # b::Vector{Float64} = []
-    
+
     # JX::Float64 = 0.1 # For complex regime
     # τ::Int = 75 # For complex regime
     # s::Vector{Int} = [] # specified in match_predictors fn
