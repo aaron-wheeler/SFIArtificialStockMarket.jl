@@ -104,15 +104,8 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     δ::Vector{Int} = []
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []
-    # active_j_records::Matrix{Int, 2}
     active_j_records::Matrix{Int} = zeros(Int, 0, 0)
 
     # specific to predictor, remove?
     σ_i::Float64
-    # a::Vector{Float64} = []
-    # b::Vector{Float64} = []
-
-    # JX::Float64 = 0.1 # For complex regime
-    # τ::Int = 75 # For complex regime
-    # s::Vector{Int} = [] # specified in match_predictors fn
 end
