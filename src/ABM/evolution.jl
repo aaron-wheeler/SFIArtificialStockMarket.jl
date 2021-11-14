@@ -380,6 +380,8 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
             for j = 1:Int((abs(ration_imbalance) - i + 1))
                 if overbought_shares == 0
                     break
+                elseif j > 25
+                    continue
                 elseif df[j, :demand_xi] <= short_restriction
                     continue
                 else
@@ -411,6 +413,8 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
             for j = 1:Int((ration_imbalance - i + 1))
                 if oversold_shares == 0
                     break
+                elseif j > 25
+                    continue
                 elseif df[j, :demand_xi] >= trade_restriction
                     continue
                 else
