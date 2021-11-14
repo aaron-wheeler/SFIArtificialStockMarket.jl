@@ -297,8 +297,17 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
 
     # Solving for clearing price via newton's method
     for i in 1:itermax
-        pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
-        push!(pt_iter, pt) # this makes price add 500 elements to the vec each time... bad
+        if i == 1
+            pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
+            push!(pt_iter, pt)
+        else
+            pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
+            push!(pt_iter, pt)
+            # check convergence criteria, defaulted to 7 digits
+            if isequal(round(pt_iter[end-1], digits = 7), round(pt_iter[end], digits = 7))
+                break
+            end
+        end
     end
     cprice = last(pt_iter)
 
