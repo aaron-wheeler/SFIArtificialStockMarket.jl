@@ -11,6 +11,8 @@ using ForwardDiff
 using DataFrames
 using MLStyle
 using Statistics
+# using JuMP
+# using Ipopt
 
 ## Update Market State 
 
@@ -21,8 +23,8 @@ Autoregressive dividend process is appended to vector and made public to all age
 Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
 """
 function dividend_process(d̄, ρ, dividend, σ_ε)
-    ε = rand(Normal(0.0,σ_ε)) # way to include random seed? Move this to model.jl?
-    dt = d̄ + ρ*(last(dividend) - d̄) + ε
+    ε = rand(Normal(0.0, σ_ε)) # way to include random seed? Move this to model.jl?
+    dt = d̄ + ρ * (last(dividend) - d̄) + ε
     dividend = push!(dividend, dt)
     return dividend
 end
@@ -36,61 +38,61 @@ Signal absent -> "0"
 """
 function update_market_vector(price, dividend, r)
     # Fundamental bits
-    if last(price) * r/last(dividend) > 0.25
+    if last(price) * r / last(dividend) > 0.25
         bit1 = 1
     else
         bit1 = 0
     end
-    
-    if last(price) * r/last(dividend) > 0.5
+
+    if last(price) * r / last(dividend) > 0.5
         bit2 = 1
     else
         bit2 = 0
     end
-    
-    if last(price) * r/last(dividend) > 0.75
+
+    if last(price) * r / last(dividend) > 0.75
         bit3 = 1
     else
         bit3 = 0
     end
-    
-    if last(price) * r/last(dividend) > 0.875
+
+    if last(price) * r / last(dividend) > 0.875
         bit4 = 1
     else
         bit4 = 0
     end
-    
-    if last(price) * r/last(dividend) > 1.0
+
+    if last(price) * r / last(dividend) > 1.0
         bit5 = 1
     else
         bit5 = 0
     end
-    
-    if last(price) * r/last(dividend) > 1.125
+
+    if last(price) * r / last(dividend) > 1.125
         bit6 = 1
     else
         bit6 = 0
     end
-    
+
     # Technical bits, the `period` in MA formula is set to 1 time step
     if last(price) > mean(price[(end-6):end])
         bit7 = 1
     else
         bit7 = 0
-    end   
-    
+    end
+
     if last(price) > mean(price[(end-9):end])
         bit8 = 1
     else
         bit8 = 0
-    end   
-    
+    end
+
     if last(price) > mean(price[(end-99):end])
         bit9 = 1
     else
         bit9 = 0
-    end   
-    
+    end
+
     if last(price) > mean(price[(end-499):end])
         bit10 = 1
     else
@@ -99,12 +101,12 @@ function update_market_vector(price, dividend, r)
 
     # Default bits, always on/off
     bit11 = 1
-    
+
     bit12 = 0
-    
+
     # Construct vector
     state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
-    
+
     return state_vector
 end
 
@@ -118,8 +120,8 @@ Agent `predictors` vector is coupled to unique `id`.
 **Should accuracy and fitness measure also be appended to each predictor?
 """
 function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max) # Add an identifier? 
-    predictors = Vector{Any}(undef, 0) 
-    for i in 1:(num_predictors-1) # minus one so that we can add default predictor
+    predictors = Vector{Any}(undef, 0)
+    for i = 1:(num_predictors-1) # minus one so that we can add default predictor
         heterogeneity = Vector{Any}(undef, 3)
         heterogeneity[1] = rand(Uniform(a_min, a_max)) # a
         heterogeneity[2] = rand(Uniform(b_min, b_max)) # b 
@@ -131,10 +133,10 @@ function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max) # Ad
     end
     # default predictor
     default_heterogeneity = Vector{Any}(undef, 3)
-    default_heterogeneity[1] = sum(predictors[i][1]*(1/predictors[i][3]) 
-        for i in 1:(num_predictors-1)) / sum(1/predictors[i][3] for i in 1:(num_predictors-1)) # default a
-    default_heterogeneity[2] = sum(predictors[i][2]*(1/predictors[i][3]) 
-        for i in 1:(num_predictors-1)) / sum(1/predictors[i][3] for i in 1:(num_predictors-1)) # default b 
+    default_heterogeneity[1] = sum(predictors[i][1] * (1 / predictors[i][3])
+                                   for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default a
+    default_heterogeneity[2] = sum(predictors[i][2] * (1 / predictors[i][3])
+                                   for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default b 
     default_heterogeneity[3] = σ_pd # initial default σ_i = σ_pd
     default_bit_vec = Vector{Any}(missing, 12)
     default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
@@ -157,17 +159,17 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 """
 function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier for agent?
     δ = Vector{Int}(undef, GA_frequency)
-    Distributions.sample!(δ_dist, δ; replace=false, ordered=false)
+    Distributions.sample!(δ_dist, δ; replace = false, ordered = false)
     δ = cumsum(δ)
-    
+
     predict_acc = fill(σ_pd, 100) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
     fitness_j = Vector{Float64}(undef, 0)
-    for i in 1:num_predictors
+    for i = 1:num_predictors
         s = count(!ismissing, predictors[i][4:15]) # specificity, number of bits that are "set" (not missing)
-        f_j = -1*(predict_acc[i]) - C*s
+        f_j = -1 * (predict_acc[i]) - C * s
         fitness_j = push!(fitness_j, f_j)
     end
-    
+
     return δ, predict_acc, fitness_j #Append identifying number for predicts and fitnesses?
 end
 
@@ -190,18 +192,19 @@ end
 """
 function match_predictors(id, num_predictors, predictors, state_vector, predict_acc, fitness_j)
     # Initialize matrix to store indices of all active predictors
-    active_predictors = Int[] 
+    active_predictors = Int[]
 
     # nested function to match predictor and state vector bits (only used here)
     match_predict(bit_j, predictor_j, j_id) =
-        for signal in 1:12
+        for signal = 1:12
             @match bit_j begin
-            if bit_j[signal] === missing || bit_j[signal] == state_vector[signal] end => push!(predictor_j, j_id) 
-                    _        => continue
+                if bit_j[signal] === missing || bit_j[signal] == state_vector[signal]
+                end => push!(predictor_j, j_id)
+                _ => continue
             end
         end
 
-    for j in 1:num_predictors
+    for j = 1:num_predictors
         # reset predictor_j with each iteration
         predictor_j = Vector{Int}(undef, 0)
         j_id = j
@@ -226,12 +229,12 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
 
     # Set chosen_j to index of predictor used to form agent demand
     chosen_j = 0
-    highest_acc = findall(matched_collection[2,:] .== maximum(matched_collection[2,:])) # indices where all maxima are found
+    highest_acc = findall(matched_collection[2, :] .== maximum(matched_collection[2, :])) # indices where all maxima are found
 
     if length(highest_acc) == 1
         chosen_j = Int(matched_collection[1, getindex(highest_acc)])
     else
-        highest_fitness = findall(matched_collection[3,:] .== maximum(matched_collection[3,:]))
+        highest_fitness = findall(matched_collection[3, :] .== maximum(matched_collection[3, :]))
         fittest_acc = Vector{Int}(undef, 0)
 
         for i = 1:size(matched_collection, 2)
@@ -252,7 +255,7 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
 
     # add agent ID to forecast vector at position 1 for demand fn
     forecast = vcat(id, forecast)
-    
+
     return active_predictors, forecast
 end
 
@@ -284,19 +287,19 @@ ERROR TERMS TO INCLUDE LATER**
 - Convergence not reached for newton's method under itermax
 - demand_xi not being equivalent to 25 at end of rationing procedure
 """
-function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings, 
-        trade_restriction, short_restriction, itermax)
+function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings,
+    trade_restriction, short_restriction, itermax)
     dt = last(dividend)
     Identifier = convert(Vector{Int}, expected_xi[1, :])
     a = convert(Vector{Float64}, expected_xi[2, :])
-    b = convert(Vector{Float64}, expected_xi[3, :]) 
+    b = convert(Vector{Float64}, expected_xi[3, :])
     σ_i = convert(Vector{Float64}, expected_xi[4, :])
-    f(pt) = sum(((a[i]*(pt + dt) + b[i] - pt*(1 + r)) / (λ*σ_i[i])) for i in 1:num_agents) - N
-    pt = last(price) # initial condition, last observed price 
-    pt_iter = [] # More efficent way to do this, with no vector?
 
     # Solving for clearing price via newton's method
-    for i in 1:itermax
+    f(pt) = sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N
+    pt = last(price) # initial condition, last observed price 
+    pt_iter = [] # More efficent way to do this, with no vector?
+    for i = 1:itermax
         if i == 1
             pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
             push!(pt_iter, pt)
@@ -311,27 +314,30 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     end
     cprice = last(pt_iter)
 
+
+
+
     test_demand_N_convergence = Vector{Float64}(undef, 0)
-    for i in 1:num_agents
-        demand = ((a[i]*(cprice + dt) + b[i] - cprice*(1 + r)) / (λ*σ_i[i]))
+    for i = 1:num_agents
+        demand = ((a[i] * (cprice + dt) + b[i] - cprice * (1 + r)) / (λ * σ_i[i]))
         push!(test_demand_N_convergence, demand)
     end
     sum(test_demand_N_convergence)
 
     # Rounding witchcraft
-    for i in 1:length(test_demand_N_convergence)
+    for i = 1:length(test_demand_N_convergence)
         test_demand_N_convergence[i] = round(test_demand_N_convergence[i], digits = 1)
     end
 
     # Way to do this without making this vector every time?
     xi_excess = Vector{Float64}(undef, 0)
     for i = 1:N
-        if test_demand_N_convergence[i,1] > trade_restriction
-            push!(xi_excess, (test_demand_N_convergence[i,1] - (test_demand_N_convergence[i,1] - trade_restriction)))
-        elseif test_demand_N_convergence[i,1] < short_restriction
-            push!(xi_excess, (test_demand_N_convergence[i,1] - (test_demand_N_convergence[i,1] - short_restriction)))
+        if test_demand_N_convergence[i, 1] > trade_restriction
+            push!(xi_excess, (test_demand_N_convergence[i, 1] - (test_demand_N_convergence[i, 1] - trade_restriction)))
+        elseif test_demand_N_convergence[i, 1] < short_restriction
+            push!(xi_excess, (test_demand_N_convergence[i, 1] - (test_demand_N_convergence[i, 1] - short_restriction)))
         else
-            push!(xi_excess, test_demand_N_convergence[i,1])
+            push!(xi_excess, test_demand_N_convergence[i, 1])
         end
     end
     test_demand_N_convergence = xi_excess
@@ -340,7 +346,7 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     test_demand_round_diff = Vector{Float64}(undef, 0)
     append!(test_demand_round_diff, test_demand_N_convergence)
 
-    for i in 1:length(test_demand_N_convergence)
+    for i = 1:length(test_demand_N_convergence)
         test_demand_round_diff[i] = trunc(Int64, test_demand_round_diff[i])
     end
     round_error = sum(test_demand_round_diff)
@@ -349,12 +355,12 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     demand_ration = hcat(test_demand_N_convergence, test_demand_round_diff)
 
     # round difference
-    ration_imbalance = N - round_error 
-    demand_ration_imbalance = vec(diff(demand_ration, dims=2))
+    ration_imbalance = N - round_error
+    demand_ration_imbalance = vec(diff(demand_ration, dims = 2))
     demand_ration_imbalance .= round.(demand_ration_imbalance, digits = 1)
     demand_ration = hcat(demand_ration, demand_ration_imbalance)
 
-    df = DataFrame(AgentID = Identifier, Current_holding = relative_holdings, Current_cash = relative_cash, 
+    df = DataFrame(AgentID = Identifier, Current_holding = relative_holdings, Current_cash = relative_cash,
         init_xi = demand_ration[:, 1], round_xi = demand_ration[:, 2], xi_diff = demand_ration[:, 3])
 
     if ration_imbalance > 0
@@ -364,9 +370,9 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     elseif ration_imbalance < 0
         # shuffle and sorts agents by xi_diff, largest positive value to largest negative value
         df = df[shuffle(1:nrow(df)), :]
-        sort!(df, order(:xi_diff), rev=true)
+        sort!(df, order(:xi_diff), rev = true)
     end
-        
+
     # number of shares the agents want to posess at time t
     df[!, :demand_xi] = df[:, :round_xi]
 
@@ -374,12 +380,12 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     i = 1
     overbought_shares = abs(ration_imbalance)
     while overbought_shares > 0
-        if df[i, :xi_diff] < 0 
+        if df[i, :xi_diff] < 0
             break
         elseif df[i, :demand_xi] <= short_restriction
             i += 1
             continue
-        elseif df[i, :xi_diff] > 0 
+        elseif df[i, :xi_diff] > 0
             df[i, :demand_xi] -= 1.0
             i += 1
             overbought_shares -= 1
@@ -399,7 +405,7 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
                 end
             end
             df = df[shuffle(1:nrow(df)), :]
-            sort!(df, order(:xi_diff), rev=true)
+            sort!(df, order(:xi_diff), rev = true)
             i = 1
         end
     end
@@ -407,18 +413,18 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     # Rationing demand side, more shares bought (+) or less shares sold (if needed, +)
     oversold_shares = ration_imbalance
     while oversold_shares > 0
-        if df[i, :xi_diff] > 0 
+        if df[i, :xi_diff] > 0
             break
         elseif df[i, :demand_xi] >= trade_restriction
             i += 1
             continue
-        elseif df[i, :xi_diff] < 0 
+        elseif df[i, :xi_diff] < 0
             df[i, :demand_xi] += 1.0
             i += 1
             oversold_shares -= 1
         else
             df = df[shuffle(1:nrow(df)), :]
-            sort!(df, order(:xi_diff), rev=true)
+            sort!(df, order(:xi_diff), rev = true)
             for j = 1:Int((ration_imbalance - i + 1))
                 if oversold_shares == 0
                     break
@@ -436,7 +442,7 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
             i = 1
         end
     end
-    df[!,:demand_xi] = convert.(Int, df[:,:demand_xi])
+    df[!, :demand_xi] = convert.(Int, df[:, :demand_xi])
     ration_imbalance = N - sum(df[:, :demand_xi])
     cprice = round(cprice; digits = 2) # any issues with doing this?
     return df, cprice
@@ -458,11 +464,11 @@ ERROR TERMS TO INCLUDE LATER**
 """
 function get_trades!(df, cprice, cash_restriction)
     # The :shares_traded column needed for trading volume vector
-    df[!, :shares_traded] = [(df[i, :demand_xi] - df[i, :Current_holding]) for i in 1:nrow(df)]
-    df[!,:shares_traded] = convert.(Float64, df[:,:shares_traded])
+    df[!, :shares_traded] = [(df[i, :demand_xi] - df[i, :Current_holding]) for i = 1:nrow(df)]
+    df[!, :shares_traded] = convert.(Float64, df[:, :shares_traded])
     # The :profit column is specific to time t, different from net profit 
-    df[!,:profit_t] = [(df[i, :shares_traded] * cprice * -1) for i in 1:nrow(df)]
-    df[:,:Current_cash] = [(df[i,:Current_cash] + df[i, :profit_t]) for i in 1:nrow(df)]
+    df[!, :profit_t] = [(df[i, :shares_traded] * cprice * -1) for i = 1:nrow(df)]
+    df[:, :Current_cash] = [(df[i, :Current_cash] + df[i, :profit_t]) for i = 1:nrow(df)]
 
     # Enforcing agent cash constraint
     for i = 1:nrow(df)
@@ -520,7 +526,7 @@ Update historical volatility vector
 """
 function update_volatility!(price, volatility)
     hist_p30 = price[(end-29):(end)]
-    sd_p30 = sqrt((sum((hist_p30 .- mean(hist_p30)).^2))/30)
+    sd_p30 = sqrt((sum((hist_p30 .- mean(hist_p30)) .^ 2)) / 30)
     push!(volatility, sd_p30)
 end
 
@@ -550,8 +556,8 @@ function update_predict_acc!(predict_acc, active_predictors, predictors, τ, pri
         if i .∈ Ref(active_predictors)
             a_j = predictors[i][1]
             b_j = predictors[i][2]
-            predict_acc[i] = (1-(1/τ))*predict_acc[i] +
-                (1/τ)*(((price[end] + dividend[end]) - (a_j*(price[end-1] + dividend[end-1]) + b_j))^2)
+            predict_acc[i] = (1 - (1 / τ)) * predict_acc[i] +
+                             (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
         end
     end
 end
@@ -565,7 +571,7 @@ Second column records the last t step that each predictor was either initiated, 
 Both columns needed for generalization procedure and GA offspring forecast variance procedure.
 """
 function update_active_j_records!(num_predictors, active_predictors, active_j_records, t)
-    for i in 1:num_predictors
+    for i = 1:num_predictors
         if in.(i, Ref(active_predictors)) == true
             active_j_records[i, 1] = 1
             active_j_records[i, 2] = t
@@ -622,10 +628,10 @@ function GA_crossover(elite_j, df_GA, active_j_records)
         end
     end
 
-    for bit in 1:length(parent_1_cond)
+    for bit = 1:length(parent_1_cond)
         cond_cross(offspring_cond, bit)
     end
-    
+
     # parent forecast parameters
     parent_1_params = df_GA[parent_1, :predictors][1:2]
     parent_2_params = df_GA[parent_2, :predictors][1:2]
@@ -656,11 +662,12 @@ function GA_crossover(elite_j, df_GA, active_j_records)
                 push!(offspring_params, parent_2_params[1]) # a
                 push!(offspring_params, parent_1_params[2]) # b
             end
-        else r == 3
-            norm_weight_1 = (1/parent_1_var) / ((1/parent_1_var) + (1/parent_2_var))
-            norm_weight_2 = (1/parent_2_var) / ((1/parent_1_var) + (1/parent_2_var))
-            a = ((norm_weight_1*parent_1_params[1]) + (norm_weight_2*parent_2_params[1])) / (norm_weight_1 + norm_weight_2)
-            b = ((norm_weight_1*parent_1_params[2]) + (norm_weight_2*parent_2_params[2])) / (norm_weight_1 + norm_weight_2)
+        else
+            r == 3
+            norm_weight_1 = (1 / parent_1_var) / ((1 / parent_1_var) + (1 / parent_2_var))
+            norm_weight_2 = (1 / parent_2_var) / ((1 / parent_1_var) + (1 / parent_2_var))
+            a = ((norm_weight_1 * parent_1_params[1]) + (norm_weight_2 * parent_2_params[1])) / (norm_weight_1 + norm_weight_2)
+            b = ((norm_weight_1 * parent_1_params[2]) + (norm_weight_2 * parent_2_params[2])) / (norm_weight_1 + norm_weight_2)
             push!(offspring_params, a)
             push!(offspring_params, b)
         end
@@ -677,12 +684,12 @@ function GA_crossover(elite_j, df_GA, active_j_records)
         filter!(x -> !(isnan(x)), elite_var)
         push!(offspring_var, median(elite_var))
     else
-        push!(offspring_var, (parent_1_var + parent_2_var)/2)
+        push!(offspring_var, (parent_1_var + parent_2_var) / 2)
     end
 
     # returning new crossed over predictor
     crossed_j = vcat(offspring_params, offspring_var, offspring_cond)
-    
+
     return crossed_j
 end
 
@@ -717,7 +724,7 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
     tournament_M1 = StatsBase.samplepair(elite_j)
     fittest_M1 = argmax([df_GA[tournament_M1[1], :fitness_j], df_GA[tournament_M1[2], :fitness_j]])
     parent_1 = tournament_M1[fittest_M1]
-    
+
     # parent condition statement
     parent_1_cond = df_GA[parent_1, :predictors][4:15]
 
@@ -736,13 +743,13 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
                 push!(offspring_cond, missing)
             end
         elseif parent_1_cond[bit] == 0
-            if rand() ≤ 2/3
+            if rand() ≤ 2 / 3
                 push!(offspring_cond, missing)
             else
                 push!(offspring_cond, 1)
             end
         else
-            if rand() ≤ 2/3
+            if rand() ≤ 2 / 3
                 push!(offspring_cond, missing)
             else
                 push!(offspring_cond, 0)
@@ -750,14 +757,14 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
         end
     end
 
-    for bit in 1:length(parent_1_cond)
+    for bit = 1:length(parent_1_cond)
         if rand() ≤ pcond_mut
             cond_mutat(offspring_cond, bit)
         else
             push!(offspring_cond, parent_1_cond[bit])
         end
     end
-    
+
     # parent forecast parameters
     parent_1_params = df_GA[parent_1, :predictors][1:2]
 
@@ -771,10 +778,10 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
         if r > (pparam_mut_long + pparam_mut_short)
             a = parent_1_params[1]
         elseif r ≤ pparam_mut_long
-            a = rand(Uniform(a_min, a_max)) 
+            a = rand(Uniform(a_min, a_max))
         else
-            a = rand(Uniform((parent_1_params[1] - 
-                        (percent_mut_short*(a_max - a_min))), (parent_1_params[1] + (percent_mut_short*(a_max - a_min)))))
+            a = rand(Uniform((parent_1_params[1] -
+                              (percent_mut_short * (a_max - a_min))), (parent_1_params[1] + (percent_mut_short * (a_max - a_min)))))
             # setting param to bound values if it exceeds allowable range
             if a < a_min
                 a = a_min
@@ -788,10 +795,10 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
         if r > (pparam_mut_long + pparam_mut_short)
             b = parent_1_params[2]
         elseif r ≤ pparam_mut_long
-            b = rand(Uniform(b_min, b_max)) 
+            b = rand(Uniform(b_min, b_max))
         else
-            b = rand(Uniform((parent_1_params[2] - 
-                        (percent_mut_short*(b_max - b_min))), (parent_1_params[2] + (percent_mut_short*(b_max - b_min)))))
+            b = rand(Uniform((parent_1_params[2] -
+                              (percent_mut_short * (b_max - b_min))), (parent_1_params[2] + (percent_mut_short * (b_max - b_min)))))
             # setting param to bound values if it exceeds allowable range
             if b < b_min
                 b = b_min
@@ -813,10 +820,10 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
     elite_var = df_GA[:, :predict_acc]
     filter!(x -> !(isnan(x)), elite_var)
     push!(offspring_var, median(elite_var))
-    
+
     # returning new mutated predictor
     mutated_j = vcat(offspring_params, offspring_var, offspring_cond)
-    
+
     return mutated_j
 end
 
