@@ -11,8 +11,8 @@ using ForwardDiff
 using DataFrames
 using MLStyle
 using Statistics
-# using JuMP
-# using Ipopt
+using JuMP
+using Ipopt
 
 ## Update Market State 
 
@@ -288,41 +288,54 @@ ERROR TERMS TO INCLUDE LATER**
 - demand_xi not being equivalent to 25 at end of rationing procedure
 """
 function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings,
-    trade_restriction, short_restriction, itermax)
+    trade_restriction, short_restriction, itermax, price_min, price_max)
     dt = last(dividend)
     Identifier = convert(Vector{Int}, expected_xi[1, :])
     a = convert(Vector{Float64}, expected_xi[2, :])
     b = convert(Vector{Float64}, expected_xi[3, :])
     σ_i = convert(Vector{Float64}, expected_xi[4, :])
 
-    # Solving for clearing price via newton's method
-    f(pt) = sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N
-    pt = last(price) # initial condition, last observed price 
-    pt_iter = [] # More efficent way to do this, with no vector?
-    for i = 1:itermax
-        if i == 1
-            pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
-            push!(pt_iter, pt)
-        else
-            pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
-            push!(pt_iter, pt)
-            # check convergence criteria, defaulted to 7 digits
-            if isequal(round(pt_iter[end-1], digits = 7), round(pt_iter[end], digits = 7))
-                break
-            end
-        end
-    end
-    cprice = last(pt_iter)
+    # # Solving for clearing price via newton's method
+    # f(pt) = sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N
+    # pt = last(price) # initial condition, last observed price 
+    # pt_iter = [] # More efficent way to do this, with no vector?
+    # for i = 1:itermax
+    #     if i == 1
+    #         pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
+    #         push!(pt_iter, pt)
+    #     else
+    #         pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
+    #         push!(pt_iter, pt)
+    #         # check convergence criteria, defaulted to 7 digits
+    #         if isequal(round(pt_iter[end-1], digits = 7), round(pt_iter[end], digits = 7))
+    #             break
+    #         end
+    #     end
+    # end
+    # cprice = last(pt_iter)
 
+    # Solving for clearing price via optimization solver
+    price_specialist = Model(Ipopt.Optimizer)
+    set_optimizer_attribute(price_specialist, "print_level", 0) # suppress solver output message
+    set_optimizer_attribute(price_specialist, "max_iter", itermax) # max number of iterations
+    set_optimizer_attribute(price_specialist, "tol", 1e-4) # convergence criteria
+    set_time_limit_sec(price_specialist, 60.0) # max allowable time for model solving
 
+    # Set constraints on price variable and solve trivial scalar obj fn (zero degrees of freedom)
+    @variable(price_specialist, price_min <= pt <= price_max, start = last(price)) # initial condition -> last observed price
+    @constraint(price_specialist, sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N >= 0.0)
+    @objective(price_specialist, Min, 1.0)
 
+    # Price specialist obtains clearing price and stores value
+    JuMP.optimize!(price_specialist)
+    cprice = value(pt)
 
+    # calculate individual agent demand
     test_demand_N_convergence = Vector{Float64}(undef, 0)
     for i = 1:num_agents
         demand = ((a[i] * (cprice + dt) + b[i] - cprice * (1 + r)) / (λ * σ_i[i]))
         push!(test_demand_N_convergence, demand)
     end
-    sum(test_demand_N_convergence)
 
     # Rounding witchcraft
     for i = 1:length(test_demand_N_convergence)
