@@ -71,7 +71,7 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
     
     # # Collect data (ensemble simulation for multiple random seeded models)
-    model_runs = 10000 # numder of model iterations
+    model_runs = 3999 # numder of model iterations
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
         adata = adata, mdata = mdata, parallel = false)
 
