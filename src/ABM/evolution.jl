@@ -162,7 +162,7 @@ function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predicto
     Distributions.sample!(δ_dist, δ; replace = false, ordered = false)
     δ = cumsum(δ)
 
-    predict_acc = fill(σ_pd, 100) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
+    predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
     fitness_j = Vector{Float64}(undef, 0)
     for i = 1:num_predictors
         s = count(!ismissing, predictors[i][4:15]) # specificity, number of bits that are "set" (not missing)
