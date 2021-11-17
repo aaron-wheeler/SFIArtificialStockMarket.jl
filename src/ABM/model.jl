@@ -185,12 +185,12 @@ function model_step!(model)
             # Invoke one of the two possible GA procedures
             if rand() ≤ model.pGAcrossover
                 for i = 1:model.num_elimination
-                    crossed_j = GA_crossover(elite_j, df_GA, agent.active_j_records)
+                    crossed_j = evolution.GA_crossover(elite_j, df_GA, agent.active_j_records)
                     replacement_j = push!(replacement_j, crossed_j)
                 end
             else
                 for i = 1:model.num_elimination
-                    mutated_j = GA_mutation(elite_j, df_GA, model.pcond_mut, model.a_min, model.a_max, model.b_min, model.b_max, model.pparam_mut_long, model.pparam_mut_short,
+                    mutated_j = evolution.GA_mutation(elite_j, df_GA, model.pcond_mut, model.a_min, model.a_max, model.b_min, model.b_max, model.pparam_mut_long, model.pparam_mut_short,
                         model.percent_mut_short)
                     replacement_j = push!(replacement_j, mutated_j)
                 end
