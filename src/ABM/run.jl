@@ -54,7 +54,8 @@ function let_it_run()
 
     # # mdata = [:gini_index]
 
-    mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
+    # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
+    mdata = [:t, :price, :dividend, :trading_volume, :volatility]
 
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds
