@@ -28,7 +28,7 @@ using Pipe
 
 # (Sequencial Computing)
 using Agents
-using Statistics: mean
+using Statistics
 using Random
 
 # # Load model libraries on workers
