@@ -661,11 +661,13 @@ function GA_crossover(elite_j, df_GA, active_j_records)
         r = rand([1, 2, 3])
         if r == 1
             method_1 = rand([1, 2])
-            if method_1 == 1
-                push!(offspring_params, parent_1_params)
-            else
-                push!(offspring_params, parent_2_params)
-            end
+        if method_1 == 1
+            push!(offspring_params, parent_1_params[1]) # a
+            push!(offspring_params, parent_1_params[2]) # b
+        else
+            push!(offspring_params, parent_2_params[1]) # a
+            push!(offspring_params, parent_2_params[2]) # b
+        end
         elseif r == 2
             method_2 = rand([1, 2])
             if method_2 == 1

@@ -167,7 +167,7 @@ function model_step!(model)
         
             # Make new 1-100 organized dataframe for these next steps
             df_GA = DataFrame(predict_acc = agent.predict_acc, fitness_j = agent.fitness_j, predictors = agent.predictors)
-            allowmissing!(df_GA)
+            #allowmissing!(df_GA)
         
             # Retain rows not included in eliminated_j for new `elite` vectors
             # Isolate elite predictors, predict_acc, fitness_j and set eliminated rows to NaN (preserves type)
