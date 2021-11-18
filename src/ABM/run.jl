@@ -67,13 +67,14 @@ function let_it_run()
         pGAcrossover = 0.1,
         τ = 75
     )
-    
+
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
-    
+
     # # Collect data (ensemble simulation for multiple random seeded models)
-    model_runs = 3999 # numder of model iterations
+    model_runs = 1000 # total numder of time steps in model
+    steady_state = collect(900:1000) # time steps where data is collected and stored locally
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
-        adata = adata, mdata = mdata, parallel = false)
+        adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
 
     # Collect data (for single model case)
     # adf, mdf = run!(models, dummystep, model_step!, 500;
