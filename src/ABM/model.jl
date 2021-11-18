@@ -196,6 +196,7 @@ function model_step!(model)
                     replacement_j = push!(replacement_j, mutated_j)
                 end
             end
+            println(replacement_j)
         
             # Merge `replacement_j` into `elite_j` using the eliminated indices from `eliminated_j`
             sort!(eliminated_j)
