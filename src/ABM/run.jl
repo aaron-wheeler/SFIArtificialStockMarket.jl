@@ -44,16 +44,10 @@ include("model.jl")
 Create model, let it run, wrangle data, dance a tarantella.
 """
 function let_it_run()
-
-    # # adata = [:status, :ϕ, :γ, :ρ,
-    # #     :deviation_norm_shirk, :deviation_norm_coop,
-    # #     :time_cooperation, :time_individual, :time_shirking,
-    # #     :reward, :output, :realised_output, :realised_output_max]
-
+    # agent data to collect
     adata = [:relative_cash, :relative_holdings]
 
-    # # mdata = [:gini_index]
-
+    # model data to collect
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
     mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility]
 
@@ -61,7 +55,7 @@ function let_it_run()
     seeds = rand(UInt32, 1) # vector of random seeds
 
     # Setup parameters (for complex or rational)
-    # complex
+    # complex regime
     properties = (
         k = 250,
         pGAcrossover = 0.1,
@@ -70,15 +64,11 @@ function let_it_run()
 
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
 
-    # # Collect data (ensemble simulation for multiple random seeded models)
-    # model_runs = 260000 # total numder of time steps in model
-    # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
-    # adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
-    #     adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
-
-    model_runs = 100 # total numder of time steps in model
+    # Collect data (ensemble simulation for multiple random seeded models)
+    model_runs = 260000 # total numder of time steps in model
+    steady_state = collect(250000:260000) # time steps where data is collected and stored locally
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
-        adata = adata, mdata = mdata, parallel = false)
+        adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
 
     # Collect data (for single model case)
     # adf, mdf = run!(models, dummystep, model_step!, 500;
