@@ -60,6 +60,10 @@ Base.@kwdef mutable struct ModelProperties
     pparam_mut_long::Float64 = 0.2
     pparam_mut_short::Float64 = 0.2
     percent_mut_short::Float64 = 0.05
+    mdf_price::Float64 = 0.0 # for data collection and plotting
+    mdf_dividend::Float64 = 0.0 # for data collection and plotting
+    mdf_trading_volume::Int = 0 # for data collection and plotting
+    mdf_volatility::Float64 = 0.0 # for data collection and plotting
 end
 
 # """

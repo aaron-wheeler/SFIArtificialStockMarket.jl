@@ -55,7 +55,7 @@ function let_it_run()
     # # mdata = [:gini_index]
 
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
-    mdata = [:t, :price, :dividend, :trading_volume, :volatility]
+    mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility]
 
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds
@@ -75,7 +75,7 @@ function let_it_run()
     # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
     # adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
     #     adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
-    
+
     model_runs = 100 # total numder of time steps in model
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
         adata = adata, mdata = mdata, parallel = false)
