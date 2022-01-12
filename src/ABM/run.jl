@@ -111,5 +111,5 @@ function let_it_run()
 end
 
 Random.seed!(44801)
-let_it_run()
+@time let_it_run()
 println("Simulation Complete")
