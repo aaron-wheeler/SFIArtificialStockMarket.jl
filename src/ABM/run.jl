@@ -37,6 +37,8 @@ using Random
 # @everywhere include("model.jl")
 
 # (Sequencial Computing)
+include("data_struct.jl") 
+include("evolution.jl")
 include("model.jl")
 
 ## Define scenarios and run model
