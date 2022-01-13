@@ -31,6 +31,8 @@ using Agents
 using Statistics
 using Random
 
+using evolution.jl
+
 # # Load model libraries on workers
 # (Parallel Computing)
 # @everywhere cd("src/ABM")
@@ -38,7 +40,7 @@ using Random
 
 # (Sequencial Computing)
 include("data_struct.jl") 
-include("evolution.jl")
+# include("evolution.jl")
 include("model.jl")
 
 ## Define scenarios and run model
