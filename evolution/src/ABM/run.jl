@@ -31,7 +31,7 @@ using Agents
 using Statistics
 using Random
 
-using evolution.jl
+using evolution
 
 # # Load model libraries on workers
 # (Parallel Computing)
