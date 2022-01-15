@@ -1,6 +1,5 @@
-# comment before module statement so that VS Code doesn't bug out
-
-module evolution
+# comment workaround before module statement so that VS Code doesn't bug out
+module SFIArtificialStockMarket
 
 using Agents
 using Distributions
@@ -843,5 +842,4 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
 end
 
 
-end
- 
+end # End of module

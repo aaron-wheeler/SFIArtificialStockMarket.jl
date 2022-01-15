@@ -30,6 +30,7 @@ using Pipe
 using Agents
 using Statistics
 using Random
+using SFIArtificialStockMarket
 
 # # Load model libraries on workers
 # (Parallel Computing)
@@ -37,6 +38,8 @@ using Random
 # @everywhere include("model.jl")
 
 # (Sequencial Computing)
+include("data_struct.jl") 
+# include("evolution.jl")
 include("model.jl")
 
 ## Define scenarios and run model
@@ -65,8 +68,10 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
 
     # Collect data (ensemble simulation for multiple random seeded models)
-    model_runs = 260000 # total numder of time steps in model
-    steady_state = collect(250000:260000) # time steps where data is collected and stored locally
+    # model_runs = 260000 # total numder of time steps in model
+    # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
+    model_runs = 1000 # total numder of time steps in model
+    steady_state = collect(0:1000) # time steps where data is collected and stored locally
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
         adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
 
@@ -109,5 +114,5 @@ function let_it_run()
 end
 
 Random.seed!(44801)
-let_it_run()
+@time let_it_run()
 println("Simulation Complete")
