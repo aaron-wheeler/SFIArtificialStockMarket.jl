@@ -30,7 +30,7 @@ using Pipe
 using Agents
 using Statistics
 using Random
-using evolution
+using SFIArtificialStockMarket
 
 # # Load model libraries on workers
 # (Parallel Computing)

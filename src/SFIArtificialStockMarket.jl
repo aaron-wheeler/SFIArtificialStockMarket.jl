@@ -1,5 +1,5 @@
 # comment workaround before module statement so that VS Code doesn't bug out
-module evolution
+module SFIArtificialStockMarket
 
 using Agents
 using Distributions
