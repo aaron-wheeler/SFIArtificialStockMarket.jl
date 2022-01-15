@@ -2,6 +2,3 @@ name = "SFIArtificialStockMarket"
 uuid = "92ea773a-4c2e-4dd1-b9ab-722396848ce4"
 authors = ["aaron-wheeler <77795743+aaron-wheeler@users.noreply.github.com>"]
 version = "0.1.0"
-
-[deps]
-CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
