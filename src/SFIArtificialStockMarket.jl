@@ -12,6 +12,7 @@ using MLStyle
 using Statistics
 using JuMP
 using Ipopt
+using Roots
 
 ## Update Market State 
 
@@ -313,21 +314,28 @@ function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relativ
     # end
     # cprice = last(pt_iter)
 
-    # Solving for clearing price via optimization solver
-    price_specialist = Model(Ipopt.Optimizer)
-    set_optimizer_attribute(price_specialist, "print_level", 0) # suppress solver output message
-    set_optimizer_attribute(price_specialist, "max_iter", itermax) # max number of iterations
-    set_optimizer_attribute(price_specialist, "tol", 1e-4) # convergence criteria
-    set_time_limit_sec(price_specialist, 60.0) # max allowable time for model solving
+    # # Solving for clearing price via NLP optimization solver (Ipopt)
+    # price_specialist = Model(Ipopt.Optimizer)
+    # set_optimizer_attribute(price_specialist, "print_level", 0) # suppress solver output message
+    # set_optimizer_attribute(price_specialist, "max_iter", itermax) # max number of iterations
+    # set_optimizer_attribute(price_specialist, "tol", 1e-4) # convergence criteria
+    # set_time_limit_sec(price_specialist, 60.0) # max allowable time for model solving
+    # # Set constraints on price variable and solve trivial scalar obj fn (zero degrees of freedom)
+    # @variable(price_specialist, price_min <= pt <= price_max, start = last(price)) # initial condition -> last observed price
+    # @constraint(price_specialist, sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N >= 0.0)
+    # @objective(price_specialist, Min, 1.0)
+    # # Price specialist obtains clearing price and stores value
+    # JuMP.optimize!(price_specialist)
+    # cprice = value(pt)
 
-    # Set constraints on price variable and solve trivial scalar obj fn (zero degrees of freedom)
-    @variable(price_specialist, price_min <= pt <= price_max, start = last(price)) # initial condition -> last observed price
-    @constraint(price_specialist, sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N >= 0.0)
-    @objective(price_specialist, Min, 1.0)
-
-    # Price specialist obtains clearing price and stores value
-    JuMP.optimize!(price_specialist)
-    cprice = value(pt)
+    # Solving for clearing price via derivative-free root-finding algorithm
+    f(pt) = sum(((a[i]*(pt + dt) + b[i] - pt*(1 + r)) / (λ*σ_i[i])) for i in 1:num_agents) - N
+    pt = last(price) # initial condition, last observed price 
+    cprice = find_zero(f, pt)
+    # set and enforce constraints on price variable
+    if cprice < price_min || cprice > price_max
+        cprice = cprice < price_min ? price_min : price_max
+    end
 
     # calculate individual agent demand
     test_demand_N_convergence = Vector{Float64}(undef, 0)
