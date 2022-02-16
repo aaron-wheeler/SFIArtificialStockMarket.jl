@@ -129,8 +129,18 @@ function model_step!(model)
     # Update price vector
     model.price = push!(model.price, clearing_price)
 
+    if model.t == 9101
+        println(model.t)
+        println(df_demand)
+        println(clearing_price)
+    end
+
     # Order execution mechanism here, get_trades()
     df_trades = SFIArtificialStockMarket.get_trades!(df_demand, clearing_price, model.cash_restriction)
+
+    if model.t == 9101
+        println(model.t)
+    end
 
     # Update trading volume vector
     SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
@@ -263,6 +273,13 @@ function model_step!(model)
     if model.t % 1000 == 0
         println(model.t)
     end
+
+    # if model.t > 8000
+    #     println(model.t)
+    # end
+    # if model.t == 9100
+    #     println(model.t)
+    # end
 
     # Increment time step
     model.t += 1

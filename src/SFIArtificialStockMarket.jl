@@ -474,8 +474,10 @@ Collect new agent share amount, cash and calculate shares traded, agent profit a
 
 Enforce cash constraint `X` and return df with adjusted agent metrics
 If the budget constraint is violated:
-    -Buy as many as allowed, and the remaining leftover share(s) goes to agent(s) with largest short position
-    -All agent metrics are then balanced to ensure global cash, shares, etc. are conserved
+    -The agent(s) trying to enter a restricted cash position will reduce share demand and receive cash back
+    -The leftover share(s) will go to the agent(s) with the largest short position and nonnegative cash balance
+    -Process is repeated until all agents possess allowable cash balance
+    -This process ensures that the balance of global cash, shares, etc. is conserved
 
 ERROR TERMS TO INCLUDE LATER**
 - Conservation tests for total cash, profit, demand, and shares traded.
@@ -501,7 +503,7 @@ function get_trades!(df, cprice, cash_restriction)
                 df[i, :profit_t] += cprice
                 # add share (buy one) elsewhere
                 for j = 1:nrow(df)
-                    if getindex(df[j, :demand_xi]) == minimum(df[:, :demand_xi])
+                    if getindex(df[j, :demand_xi]) == minimum(df[:, :demand_xi]) && getindex(df[j, :Current_cash]) > 0.0
                         df[j, :Current_cash] -= cprice
                         df[j, :demand_xi] += 1
                         df[j, :shares_traded] += 1.0
