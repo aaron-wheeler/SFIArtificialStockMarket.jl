@@ -259,6 +259,11 @@ function model_step!(model)
     model.mdf_trading_volume = last(model.trading_volume)
     model.mdf_volatility = last(model.volatility)
 
+    # Time tracking print messages (for debugging)
+    if model.t % 50000 == 0
+        println(model.t)
+    end
+
     # Increment time step
     model.t += 1
 
