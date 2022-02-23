@@ -580,9 +580,9 @@ function update_predict_acc!(predict_acc, active_predictors, predictors, τ, pri
             b_j = predictors[i][2]
             predict_acc[i] = (1 - (1 / τ)) * predict_acc[i] +
                              (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
-            # Enforce max value of predict_acc to be 100.0 (necessary to validate C=0.005)
-            if predict_acc[i] > 100.0
-                predict_acc[i] = 100.0
+            # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
+            if predict_acc[i] > 500.0
+                predict_acc[i] = 500.0
             end
         end
     end
