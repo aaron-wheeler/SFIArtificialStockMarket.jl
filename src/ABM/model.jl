@@ -67,21 +67,22 @@ function init_agents!(model)
     δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
     for id in 1:model.num_agents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
         a = Trader(
-            id = id, 
-            pos = (1,1),
+            id = id,
+            pos = (1, 1),
             relative_cash = model.init_cash,
+            relative_wealth = model.init_cash + last(model.price) * 1, # wealth = cash + price*holdings
             σ_i = model.σ_pd,
             # active_j_records = zeros(Int, model.num_predictors, 2)
         )
-        
+    
         a.predictors = SFIArtificialStockMarket.init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
         a.δ, a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         # a.active_predictors, a.forecast = SFIArtificialStockMarket.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
         a.active_j_records = zeros(Int, model.num_predictors, 2)
-
-        add_agent_single!(a, model) 
+    
+        add_agent_single!(a, model)
     end
 
     return model
@@ -97,6 +98,16 @@ function model_step!(model)
 
     # Exogenously determine dividend and post for all agents
     model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+
+    # Adjust agent dividend and fixed income asset earnings and pay taxes
+    for agent in scheduled_agents
+        # Update cash
+        agent.relative_cash += model.r * agent.relative_cash + agent.relative_holdings * last(model.dividend) # risk-free asset earnings + risky asset earnings
+        agent.relative_cash -= agent.relative_wealth * model.r # pay taxes on previous total wealth
+    
+        # Update wealth
+        agent.relative_wealth = agent.relative_cash + last(model.price) * agent.relative_holdings
+    end
 
     # Update market state vector
     model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
@@ -141,6 +152,7 @@ function model_step!(model)
     # Calculate and update individual agent financial rewards (cash and holdings)
     for agent in scheduled_agents
         SFIArtificialStockMarket.update_rewards!(df_trades, agent)
+        agent.relative_wealth = agent.relative_cash + clearing_price * agent.relative_holdings
     end
 
     # Update agent forecasting metrics 
@@ -253,7 +265,7 @@ function model_step!(model)
         end
     end
 
-    # Update mdf collection variables
+    # Update mdf collection variables (have to do this bc these are vectors) **TODO: Reconsider having these as growing vectors in first place?? Make just big enough to for state_vector?
     model.mdf_price = last(model.price)
     model.mdf_dividend = last(model.dividend)
     model.mdf_trading_volume = last(model.trading_volume)

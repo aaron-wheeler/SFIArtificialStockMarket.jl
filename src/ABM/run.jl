@@ -48,7 +48,7 @@ Create model, let it run, wrangle data, dance a tarantella.
 """
 function let_it_run()
     # agent data to collect
-    adata = [:relative_cash, :relative_holdings]
+    adata = [:relative_cash, :relative_holdings, :relative_wealth]
 
     # model data to collect
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
@@ -68,10 +68,11 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
 
     # Collect data (ensemble simulation for multiple random seeded models)
-    model_runs = 260000 # total numder of time steps in model
-    steady_state = collect(250000:260000) # time steps where data is collected and stored locally
-    # model_runs = 1000 # total numder of time steps in model
-    # steady_state = collect(0:1000) # time steps where data is collected and stored locally
+    # model_runs = 260000 # total numder of time steps in model
+    # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
+
+    model_runs = 1000 # total numder of time steps in model
+    steady_state = collect(0:1000) # time steps where data is collected and stored locally
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
         adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
 

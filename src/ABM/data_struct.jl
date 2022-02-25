@@ -102,6 +102,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     pos::Dims{2}
     relative_cash::Float64
     relative_holdings::Int = 1
+    relative_wealth::Float64
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
