@@ -71,8 +71,8 @@ function let_it_run()
     model_runs = 260000 # total numder of time steps in model
     steady_state = collect(250000:260000) # time steps where data is collected and stored locally
 
-    # model_runs = 1000 # total numder of time steps in model
-    # steady_state = collect(0:1000) # time steps where data is collected and stored locally
+    # model_runs = 1500 # total numder of time steps in model
+    # steady_state = collect(0:1500) # time steps where data is collected and stored locally
 
     # model_runs = 460000 # total numder of time steps in model
     # steady_state = collect(450000:460000) # time steps where data is collected and stored locally

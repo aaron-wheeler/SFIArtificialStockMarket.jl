@@ -48,10 +48,10 @@ Base.@kwdef mutable struct ModelProperties
     # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
     k_var::Int = 40
     C::Float64 = 0.005
-    # price_min::Float64 = 0.01 # from 2008 textbook
-    # price_max::Float64 = 200.0 # from 2008 textbook
-    price_min::Float64 = 0.001 # from original source code
-    price_max::Float64 = 99999.0 # from original source code
+    price_min::Float64 = 0.01 # from 2008 textbook
+    price_max::Float64 = 200.0 # from 2008 textbook
+    # price_min::Float64 = 0.001 # from original source code
+    # price_max::Float64 = 99999.0 # from original source code
     init_cash::Float64 = 20000.0
     trade_restriction::Float64 = 10.0
     short_restriction::Float64 = -5.0

@@ -272,7 +272,7 @@ function model_step!(model)
     model.mdf_volatility = last(model.volatility)
 
     # Time tracking print messages (for debugging)
-    if model.t % 10000 == 0
+    if model.t % 50000 == 0
         println(model.t)
     end
 
