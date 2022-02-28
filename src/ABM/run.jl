@@ -52,7 +52,8 @@ function let_it_run()
 
     # model data to collect
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
-    mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility]
+    # mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility]
+    mdata = [:t, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
 
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds

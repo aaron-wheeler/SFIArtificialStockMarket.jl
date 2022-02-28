@@ -104,7 +104,7 @@ function model_step!(model)
         # Update cash
         agent.relative_cash += model.r * agent.relative_cash + agent.relative_holdings * last(model.dividend) # risk-free asset earnings + risky asset earnings
         agent.relative_cash -= agent.relative_wealth * model.r # pay taxes on previous total wealth
-    
+
         # Update wealth
         agent.relative_wealth = agent.relative_cash + last(model.price) * agent.relative_holdings
     end
@@ -264,6 +264,19 @@ function model_step!(model)
             end
         end
     end
+
+    # Update values tracking set bits
+    # initialize "set" bit count
+    model.frac_bits_set = 0.0
+    model.frac_bits_fund = 0.0
+    model.frac_bits_tech = 0.0
+    for agent in scheduled_agents
+        model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits!(agent.predictors, model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech)
+    end
+    # average over all rules and agents
+    model.frac_bits_set = model.frac_bits_set / (model.num_predictors * 12 * model.num_agents) # 12 total bits in predictor
+    model.frac_bits_fund = model.frac_bits_fund / (model.num_predictors * 6 * model.num_agents) # 6 fundamental bits in predictor
+    model.frac_bits_tech = model.frac_bits_tech / (model.num_predictors * 4 * model.num_agents) # 4 technical bits in predictor
 
     # Update mdf collection variables (have to do this bc these are vectors) **TODO: Reconsider having these as growing vectors in first place?? Make just big enough to for state_vector?
     model.mdf_price = last(model.price)
