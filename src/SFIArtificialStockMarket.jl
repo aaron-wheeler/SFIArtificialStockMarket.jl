@@ -553,6 +553,25 @@ function update_volatility!(price, volatility)
 end
 
 
+"""
+Update value tracking the fraction of "set" (i.e., non-missing) bits present in model
+
+Tracking 3 fractions here, number of "set" bits over: all 12 bits(including the dummy ones), 6 fundamental bits, and the 4 technical bits.
+These values will then be averaged over all agents and all predictors (done in model.jl). 
+"""
+function update_frac_bits!(predictors, frac_bits_set, frac_bits_fund, frac_bits_tech)
+    for i = 1:length(predictors)
+        s_all = count(!ismissing, predictors[i][4:15]) # total number of "set" bits
+        s_fund = count(!ismissing, predictors[i][4:9]) # total number of "set" fundamental bits
+        s_tech = count(!ismissing, predictors[i][10:13]) # total number of "set" technical bits
+        frac_bits_set += s_all
+        frac_bits_fund += s_fund
+        frac_bits_tech += s_tech
+    end
+    return frac_bits_set, frac_bits_fund, frac_bits_tech
+end
+
+
 ## Agent Updating (done for each agent individually)
 
 """

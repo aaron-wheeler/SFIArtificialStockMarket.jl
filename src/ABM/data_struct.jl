@@ -48,8 +48,10 @@ Base.@kwdef mutable struct ModelProperties
     # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
     k_var::Int = 40
     C::Float64 = 0.005
-    price_min::Float64 = 0.01
-    price_max::Float64 = 200.0
+    price_min::Float64 = 0.01 # from 2008 textbook
+    price_max::Float64 = 200.0 # from 2008 textbook
+    # price_min::Float64 = 0.001 # from original source code
+    # price_max::Float64 = 99999.0 # from original source code
     init_cash::Float64 = 20000.0
     trade_restriction::Float64 = 10.0
     short_restriction::Float64 = -5.0
@@ -64,6 +66,9 @@ Base.@kwdef mutable struct ModelProperties
     mdf_dividend::Float64 = 0.0 # for data collection and plotting
     mdf_trading_volume::Int = 0 # for data collection and plotting
     mdf_volatility::Float64 = 0.0 # for data collection and plotting
+    frac_bits_set::Float64 = 0.0 # for data collection and plotting
+    frac_bits_fund::Float64 = 0.0 # for data collection and plotting
+    frac_bits_tech::Float64 = 0.0 # for data collection and plotting
 end
 
 # """
@@ -102,6 +107,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     pos::Dims{2}
     relative_cash::Float64
     relative_holdings::Int = 1
+    relative_wealth::Float64
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
