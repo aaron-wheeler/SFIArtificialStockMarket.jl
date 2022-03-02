@@ -522,6 +522,53 @@ function get_trades!(df, cprice, cash_restriction)
 end
 
 
+"""
+Will update this later
+
+"""
+function get_demand_slope!(a, b, σ_i, trial_price, dt, r, λ, relative_holdings, trade_restriction, cash_restriction, short_restriction, relative_cash)
+    forecast = a * (trial_price + dt) + b
+
+    if forecast >= 0.0
+        demand = ((forecast - trial_price * (1 + r)) / (λ * σ_i)) - relative_holdings
+        slope = (a - (1 + r)) / (λ * σ_i)
+    else
+        forecast = 0.0
+        demand = ((-trial_price * (1 + r)) / (λ * σ_i)) - relative_holdings
+        slope = (1 + r) / (λ * σ_i)
+    end
+
+    # set and enforce trading constraints
+    if demand > trade_restriction
+        demand = trade_restriction
+        slope = 0.0
+    elseif demand < -trade_restriction
+        demand = -trade_restriction
+        slope = 0.0
+    end
+
+    # set and enforce cash and holding constraints
+    # If buying, we check to see if we're within borrowing limits
+    if (demand > 0.0)
+        if (demand * trial_price > (relative_cash - cash_restriction))
+            if (relative_cash - cash_restriction > 0.0)
+                demand = (relative_cash - cash_restriction) / trial_price
+                slope = -demand / trial_price
+            else
+                demand = 0.0
+                slope = 0.0
+            end
+        end
+        # If selling, we check to make sure we have enough stock to sell
+    elseif (demand < 0.0 && demand + relative_holdings < short_restriction)
+        demand = short_restriction - relative_holdings
+        slope = 0.0
+    end
+
+    return demand, slope
+end
+
+
 ## Market State Updating
 """
 Update trading volume vector

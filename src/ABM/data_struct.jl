@@ -24,7 +24,7 @@ Base.@kwdef mutable struct ModelProperties
     state_vector::Vector{Int} = []
     price::Vector{Float64} = []
     dividend::Vector{Float64} = []
-    trading_volume::Vector{Int} = []
+    trading_volume::Vector{Float64} = []
     volatility::Vector{Float64} = []
     technical_activity::Vector{Int} = []
     initialization_t::Int = 499
@@ -53,6 +53,9 @@ Base.@kwdef mutable struct ModelProperties
     # price_min::Float64 = 0.001 # from original source code
     # price_max::Float64 = 99999.0 # from original source code
     init_cash::Float64 = 20000.0
+    eta::Float64 = 0.0005
+    min_excess::Float64 = 0.01
+    max_rounds::Int = 20
     trade_restriction::Float64 = 10.0
     short_restriction::Float64 = -5.0
     cash_restriction::Float64 = -2000.0
@@ -64,7 +67,7 @@ Base.@kwdef mutable struct ModelProperties
     percent_mut_short::Float64 = 0.05
     mdf_price::Float64 = 0.0 # for data collection and plotting
     mdf_dividend::Float64 = 0.0 # for data collection and plotting
-    mdf_trading_volume::Int = 0 # for data collection and plotting
+    mdf_trading_volume::Float64 = 0.0 # for data collection and plotting
     mdf_volatility::Float64 = 0.0 # for data collection and plotting
     frac_bits_set::Float64 = 0.0 # for data collection and plotting
     frac_bits_fund::Float64 = 0.0 # for data collection and plotting
@@ -106,13 +109,13 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     id::Int
     pos::Dims{2}
     relative_cash::Float64
-    relative_holdings::Int = 1
+    relative_holdings::Float64 = 1.0
     relative_wealth::Float64
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
     expected_pd::Vector{Float64} = [] # Remove this? Is there one of these for each predictor? Why a vector?
-    demand_xi::Int = 0 # Remove this?
+    demand_xi::Float64 = 0.0
     δ::Vector{Int} = []
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []

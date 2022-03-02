@@ -14,7 +14,7 @@ function init_model(; seed::UInt32, properties...)
         Trader, 
         space; # This does nothing as of right now, brainstorm use (Power law wealth distribution space?)
         properties = ModelProperties(; properties...), 
-        scheduler = Schedulers.randomly, # TODO: Investigate this
+        scheduler = Schedulers.by_id,
         rng = MersenneTwister(seed) # Is this used anywhere in simulation? dividend_process?
     )
     init_state!(model)
@@ -120,40 +120,134 @@ function model_step!(model)
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
     expected_xi = zeros(Float64, 4, 0)
-    relative_cash_t = Vector{Float64}(undef, 0)
-    relative_holdings_t = Vector{Int}(undef, 0)
+    # relative_cash_t = Vector{Float64}(undef, 0)
+    # relative_holdings_t = Vector{Int}(undef, 0)
 
-    for agent in scheduled_agents # will this work in agent id order? What is scheduled_agents order? -> Set as `randomly` rn
+    for agent in scheduled_agents
         # safer to do this all in one data structure and then sort by agent id in next step to ensure consistency?
         expected_xi = hcat(expected_xi, agent.forecast)
-        relative_cash_t = push!(relative_cash_t, agent.relative_cash)
-        relative_holdings_t = push!(relative_holdings_t, agent.relative_holdings)
+        # relative_cash_t = push!(relative_cash_t, agent.relative_cash)
+        # relative_holdings_t = push!(relative_holdings_t, agent.relative_holdings)
 
     end
 
+    dt = last(model.dividend)
+    Identifier = convert(Vector{Int}, expected_xi[1, :])
+    a = convert(Vector{Float64}, expected_xi[2, :])
+    b = convert(Vector{Float64}, expected_xi[3, :])
+    σ_i = convert(Vector{Float64}, expected_xi[4, :])
+
     # check order consistency of expected_xi[1,:] and relative_cash, relative_holdings
 
-    # Price formation mechanism
-    df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
-        model.trade_restriction, model.short_restriction, model.itermax, model.price_min, model.price_max)
+    # ## PREVIOUS MARKET CLEARING IMPLEMENTATION
+
+    # # Price formation mechanism
+    # df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
+    #     model.trade_restriction, model.short_restriction, model.itermax, model.price_min, model.price_max)
+
+    # # Update price vector
+    # model.price = push!(model.price, clearing_price)
+
+    # # Order execution mechanism here, get_trades()
+    # df_trades = SFIArtificialStockMarket.get_trades!(df_demand, clearing_price, model.cash_restriction)
+
+    # # Update trading volume vector
+    # SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
+
+    # # Update historical volatility vector
+    # SFIArtificialStockMarket.update_volatility!(model.price, model.volatility)
+
+    # # Calculate and update individual agent financial rewards (cash and holdings)
+    # for agent in scheduled_agents
+    #     SFIArtificialStockMarket.update_rewards!(df_trades, agent)
+    #     agent.relative_wealth = agent.relative_cash + clearing_price * agent.relative_holdings
+    # end
+    # ## END OF PREVIOUS MARKET IMPLEMENTATION
+
+
+    ## NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
+    # Initialize
+    slope_total = 0.0
+    bid_total = 0.0
+    ask_total = 0.0
+    trial_price = 0.0
+    bid_frac = 0.0
+    ask_frac = 0.0
+    volume = 0.0
+
+    for nround in 1:model.max_rounds
+        if nround == 1
+            trial_price = last(model.price)
+        else
+            imbalance = bid_total - ask_total
+            if (imbalance <= model.min_excess && imbalance >= -model.min_excess)
+                break
+            end
+
+            # update price
+            if slope_total != 0
+                trial_price -= imbalance / slope_total
+            else
+                trial_price *= 1 + model.eta * imbalance
+            end
+
+            # break
+        end
+
+        # set and enforce constraints on price variable
+        if trial_price < model.price_min || trial_price > model.price_max
+            trial_price = trial_price < model.price_min ? model.price_min : model.price_max
+        end
+
+        # Get agent's demand and sum bids, asks, and slopes
+        slope_total = 0.0
+        bid_total = 0.0
+        ask_total = 0.0
+
+        for agent in scheduled_agents
+            slope = 0.0
+            agent.demand_xi, slope = SFIArtificialStockMarket.get_demand_slope!(a[agent.id], b[agent.id], σ_i[agent.id], trial_price, dt, model.r, model.λ, agent.relative_holdings,
+                model.trade_restriction, model.cash_restriction, model.short_restriction, agent.relative_cash)
+            slope_total += slope
+            if agent.demand_xi > 0.0
+                bid_total += agent.demand_xi
+            elseif agent.demand_xi < 0.0
+                ask_total -= agent.demand_xi
+            end
+        end
+
+        # match up bids and asks
+        volume = (bid_total > ask_total ? ask_total : bid_total)
+        bid_frac = (bid_total > 0.0 ? volume / bid_total : 0.0)
+        ask_frac = (ask_total > 0.0 ? volume / ask_total : 0.0)
+    end
+
+    clearing_price = trial_price
+
+    # Complete trades 
+    for agent in scheduled_agents
+        if agent.demand_xi > 0.0
+            agent.relative_holdings += agent.demand_xi * bid_frac
+            agent.relative_cash -= agent.demand_xi * bid_frac * clearing_price
+        elseif agent.demand_xi < 0.0
+            agent.relative_holdings += agent.demand_xi * ask_frac
+            agent.relative_cash -= agent.demand_xi * ask_frac * clearing_price
+        end
+
+        agent.relative_wealth = agent.relative_cash + clearing_price * agent.relative_holdings
+    end
 
     # Update price vector
     model.price = push!(model.price, clearing_price)
 
-    # Order execution mechanism here, get_trades()
-    df_trades = SFIArtificialStockMarket.get_trades!(df_demand, clearing_price, model.cash_restriction)
-
     # Update trading volume vector
-    SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
+    model.trading_volume = push!(model.trading_volume, volume)
 
     # Update historical volatility vector
     SFIArtificialStockMarket.update_volatility!(model.price, model.volatility)
 
-    # Calculate and update individual agent financial rewards (cash and holdings)
-    for agent in scheduled_agents
-        SFIArtificialStockMarket.update_rewards!(df_trades, agent)
-        agent.relative_wealth = agent.relative_cash + clearing_price * agent.relative_holdings
-    end
+    ## END OF NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
+
 
     # Update agent forecasting metrics 
     for agent in scheduled_agents
@@ -285,7 +379,7 @@ function model_step!(model)
     model.mdf_volatility = last(model.volatility)
 
     # Time tracking print messages (for debugging)
-    if model.t % 50000 == 0
+    if model.t % 10000 == 0
         println(model.t)
     end
 
