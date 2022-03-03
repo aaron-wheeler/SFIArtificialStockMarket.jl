@@ -105,6 +105,10 @@ function model_step!(model)
         agent.relative_cash += model.r * agent.relative_cash + agent.relative_holdings * last(model.dividend) # risk-free asset earnings + risky asset earnings
         agent.relative_cash -= agent.relative_wealth * model.r # pay taxes on previous total wealth
 
+        if agent.relative_cash < model.cash_restriction
+            agent.relative_cash = model.cash_restriction
+        end
+
         # Update wealth
         agent.relative_wealth = agent.relative_cash + last(model.price) * agent.relative_holdings
     end

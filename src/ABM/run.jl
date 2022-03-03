@@ -69,11 +69,11 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
 
     # Collect data (ensemble simulation for multiple random seeded models)
-    model_runs = 260000 # total numder of time steps in model
-    steady_state = collect(250000:260000) # time steps where data is collected and stored locally
+    # model_runs = 260000 # total numder of time steps in model
+    # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
 
-    # model_runs = 10 # total numder of time steps in model
-    # steady_state = collect(0:10) # time steps where data is collected and stored locally
+    model_runs = 1000 # total numder of time steps in model
+    steady_state = collect(0:1000) # time steps where data is collected and stored locally
 
     # model_runs = 460000 # total numder of time steps in model
     # steady_state = collect(450000:460000) # time steps where data is collected and stored locally
