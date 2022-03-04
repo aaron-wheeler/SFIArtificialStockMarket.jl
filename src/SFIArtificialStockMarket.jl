@@ -229,7 +229,8 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
 
     # Set chosen_j to index of predictor used to form agent demand
     chosen_j = 0
-    highest_acc = findall(matched_collection[2, :] .== maximum(matched_collection[2, :])) # indices where all maxima are found
+    # indices where all minima are found, minima because highest accuracy is one with lowest squarest forecast error
+    highest_acc = findall(matched_collection[2, :] .== minimum(matched_collection[2, :]))
 
     if length(highest_acc) == 1
         chosen_j = Int(matched_collection[1, getindex(highest_acc)])
@@ -256,7 +257,7 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
     # add agent ID to forecast vector at position 1 for demand fn
     forecast = vcat(id, forecast)
 
-    return active_predictors, forecast
+    return active_predictors, forecast, chosen_j
 end
 
 
@@ -639,16 +640,31 @@ end
 """
 Update accuracy of each active predictor. 
 """
-function update_predict_acc!(predict_acc, active_predictors, predictors, τ, price, dividend)
-    for i = 1:length(predict_acc)
-        if i .∈ Ref(active_predictors)
-            a_j = predictors[i][1]
-            b_j = predictors[i][2]
-            predict_acc[i] = (1 - (1 / τ)) * predict_acc[i] +
-                             (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
+# function update_predict_acc!(predict_acc, active_predictors, predictors, τ, price, dividend)
+#     for i = 1:length(predict_acc)
+#         if i .∈ Ref(active_predictors)
+#             a_j = predictors[i][1]
+#             b_j = predictors[i][2]
+#             predict_acc[i] = (1 - (1 / τ)) * predict_acc[i] +
+#                              (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
+#             # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
+#             if predict_acc[i] > 500.0
+#                 predict_acc[i] = 500.0
+#             end
+#         end
+#     end
+# end
+
+function update_predict_acc!(agent, τ, price, dividend)
+    for i = 1:length(agent.predict_acc)
+        if i .∈ Ref(agent.active_predictors)
+            a_j = agent.predictors[i][1]
+            b_j = agent.predictors[i][2]
+            agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] +
+                                   (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
             # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
-            if predict_acc[i] > 500.0
-                predict_acc[i] = 500.0
+            if agent.predict_acc[i] > 500.0
+                agent.predict_acc[i] = 500.0
             end
         end
     end

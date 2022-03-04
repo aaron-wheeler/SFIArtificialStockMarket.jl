@@ -48,7 +48,7 @@ Create model, let it run, wrangle data, dance a tarantella.
 """
 function let_it_run()
     # agent data to collect
-    adata = [:relative_cash, :relative_holdings, :relative_wealth]
+    adata = [:relative_cash, :relative_holdings, :relative_wealth, :chosen_j]
 
     # model data to collect
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]

@@ -118,7 +118,7 @@ function model_step!(model)
 
     # Agent expectation steps
     for agent in scheduled_agents
-        agent.active_predictors, agent.forecast = SFIArtificialStockMarket.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j)
+        agent.active_predictors, agent.forecast, agent.chosen_j = SFIArtificialStockMarket.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j)
         SFIArtificialStockMarket.update_active_j_records!(model.num_predictors, agent.active_predictors, agent.active_j_records, model.t)
     end
 
@@ -255,7 +255,8 @@ function model_step!(model)
 
     # Update agent forecasting metrics 
     for agent in scheduled_agents
-        SFIArtificialStockMarket.update_predict_acc!(agent.predict_acc, agent.active_predictors, agent.predictors, model.τ, model.price, model.dividend)
+        # SFIArtificialStockMarket.update_predict_acc!(agent.predict_acc, agent.active_predictors, agent.predictors, model.τ, model.price, model.dividend)
+        SFIArtificialStockMarket.update_predict_acc!(agent, model.τ, model.price, model.dividend)
     end
 
     # Each individual agent checks to see if they are to be selected for GA 
