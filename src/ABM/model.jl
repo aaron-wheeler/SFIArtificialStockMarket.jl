@@ -118,7 +118,7 @@ function model_step!(model)
 
     # Agent expectation steps
     for agent in scheduled_agents
-        agent.active_predictors, agent.forecast, agent.chosen_j = SFIArtificialStockMarket.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j)
+        agent.active_predictors, agent.forecast, agent.chosen_j = SFIArtificialStockMarket.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j, model.σ_pd)
         SFIArtificialStockMarket.update_active_j_records!(model.num_predictors, agent.active_predictors, agent.active_j_records, model.t)
     end
 
@@ -136,7 +136,7 @@ function model_step!(model)
     end
 
     dt = last(model.dividend)
-    Identifier = convert(Vector{Int}, expected_xi[1, :])
+    # Identifier = convert(Vector{Int}, expected_xi[1, :])
     a = convert(Vector{Float64}, expected_xi[2, :])
     b = convert(Vector{Float64}, expected_xi[3, :])
     σ_i = convert(Vector{Float64}, expected_xi[4, :])

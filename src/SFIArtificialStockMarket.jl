@@ -190,7 +190,7 @@ end
 **Add `active_predictors` and `forecast` to agent struct? Or init to zero/replace @each time step?
 **Need to know index of predictor sent to demand (chosen_j) for any reason? Not returned here, just its a, b, etc.
 """
-function match_predictors(id, num_predictors, predictors, state_vector, predict_acc, fitness_j)
+function match_predictors(id, num_predictors, predictors, state_vector, predict_acc, fitness_j, σ_pd)
     # Initialize matrix to store indices of all active predictors
     active_predictors = Int[]
 
@@ -227,6 +227,19 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
         matched_collection = hcat(matched_collection, [value, predict_acc[value], fitness_j[value]])
     end
 
+    row, col = size(matched_collection)
+    if col < 2 # if default predictor is only one active, take fitness-weighted average of all a, b as forecast
+        chosen_j = 0
+        a = sum(predictors[i][1] * (fitness_j[i])
+                for i = 1:(num_predictors)) / sum(fitness_j[i] for i = 1:(num_predictors))
+        b = sum(predictors[i][2] * (fitness_j[i])
+                for i = 1:(num_predictors)) / sum(fitness_j[i] for i = 1:(num_predictors))
+        # variance is just init var (σ_pd = 4.0)
+        forecast = [chosen_j, a, b, σ_pd]
+
+        return active_predictors, forecast, chosen_j
+    end
+
     # Set chosen_j to index of predictor used to form agent demand
     chosen_j = 0
     # indices where all minima are found, minima because highest accuracy is one with lowest squarest forecast error
@@ -237,13 +250,13 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
     else
         # highest_fitness = findall(matched_collection[3, :] .== maximum(matched_collection[3, :]))
         # fittest_acc = Vector{Int}(undef, 0)
-    
+
         # for i = 1:size(matched_collection, 2)
         #     if in.(i, Ref(highest_acc)) == true && in.(i, Ref(highest_fitness)) == true
         #         fittest_acc = push!(fittest_acc, i)
         #     end
         # end
-    
+
         # if length(fittest_acc) == 1
         #     chosen_j = Int(matched_collection[1, getindex(fittest_acc)])
         # else
