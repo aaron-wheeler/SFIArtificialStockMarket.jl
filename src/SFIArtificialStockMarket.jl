@@ -235,20 +235,24 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
     if length(highest_acc) == 1
         chosen_j = Int(matched_collection[1, getindex(highest_acc)])
     else
-        highest_fitness = findall(matched_collection[3, :] .== maximum(matched_collection[3, :]))
-        fittest_acc = Vector{Int}(undef, 0)
-
-        for i = 1:size(matched_collection, 2)
-            if in.(i, Ref(highest_acc)) == true && in.(i, Ref(highest_fitness)) == true
-                fittest_acc = push!(fittest_acc, i)
-            end
-        end
-
-        if length(fittest_acc) == 1
-            chosen_j = Int(matched_collection[1, getindex(fittest_acc)])
-        else
-            chosen_j = 100
-        end
+        # highest_fitness = findall(matched_collection[3, :] .== maximum(matched_collection[3, :]))
+        # fittest_acc = Vector{Int}(undef, 0)
+    
+        # for i = 1:size(matched_collection, 2)
+        #     if in.(i, Ref(highest_acc)) == true && in.(i, Ref(highest_fitness)) == true
+        #         fittest_acc = push!(fittest_acc, i)
+        #     end
+        # end
+    
+        # if length(fittest_acc) == 1
+        #     chosen_j = Int(matched_collection[1, getindex(fittest_acc)])
+        # else
+        #     # length(fittest_acc) > 1, pick one randomly?
+        #     chosen_j = 100
+        # end
+        fit_j = matched_collection[:, getindex([highest_acc])]
+        fittest = StatsBase.sample(findall(fit_j[3, :] .== maximum(fit_j[3, :])))
+        chosen_j = Int(fit_j[1, fittest])
     end
 
     # forecast vector composed of a, b, σ_i
