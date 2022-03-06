@@ -684,10 +684,10 @@ function update_predict_acc!(agent, τ, price, dividend)
                 deviation = 500.0
             end
             agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] + (1 / τ) * deviation
-            # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
-            # if agent.predict_acc[i] > 500.0
-            #     agent.predict_acc[i] = 500.0
-            # end
+            # Enforce max value of predict_acc to be 100.0 (necessary to validate C=0.005)
+            if agent.predict_acc[i] > 100.0
+                agent.predict_acc[i] = 100.0
+            end
         end
     end
 end
