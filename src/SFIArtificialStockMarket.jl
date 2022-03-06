@@ -677,12 +677,17 @@ function update_predict_acc!(agent, τ, price, dividend)
         if i .∈ Ref(agent.active_predictors)
             a_j = agent.predictors[i][1]
             b_j = agent.predictors[i][2]
-            agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] +
-                                   (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
-            # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
-            if agent.predict_acc[i] > 500.0
-                agent.predict_acc[i] = 500.0
+            # agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] +
+            #                        (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
+            deviation = (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
+            if devation > 500.0
+                deviation = 500.0
             end
+            agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] + (1 / τ) * deviation
+            # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
+            # if agent.predict_acc[i] > 500.0
+            #     agent.predict_acc[i] = 500.0
+            # end
         end
     end
 end

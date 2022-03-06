@@ -253,94 +253,96 @@ function model_step!(model)
     ## END OF NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
 
 
-    # Update agent forecasting metrics 
-    for agent in scheduled_agents
-        # SFIArtificialStockMarket.update_predict_acc!(agent.predict_acc, agent.active_predictors, agent.predictors, model.τ, model.price, model.dividend)
-        SFIArtificialStockMarket.update_predict_acc!(agent, model.τ, model.price, model.dividend)
-    end
-
-    # Each individual agent checks to see if they are to be selected for GA 
-    for agent in scheduled_agents
-        # Check recombination status, undergo GA if true
-        if in.(model.t, Ref(agent.δ)) == true
-            # Begin GA
-            for i = 1:length(agent.predict_acc)
-                # Update variance estimate of each predictor `σ_j` to its current active value `predict_acc`
-                agent.predictors[i][3] = agent.predict_acc[i]
-                # Update fitness measure of each predictor using new `σ_j`
-                s = count(!ismissing, agent.predictors[i][4:15])
-                f_j = -1 * (agent.predict_acc[i]) - model.C * s
-                agent.fitness_j[i] = f_j
-            end
-
-            # Worst performing (least fit) `num_elimination` predictors are collected for elimination
-            eliminated_j = sortperm(agent.fitness_j[1:99])[1:model.num_elimination] # excluding default vec
-
-            # Make new 1-100 organized dataframe for these next steps
-            df_GA = DataFrame(predict_acc = agent.predict_acc, fitness_j = agent.fitness_j, predictors = agent.predictors)
-            #allowmissing!(df_GA)
-
-            # Retain rows not included in eliminated_j for new `elite` vectors
-            # Isolate elite predictors, predict_acc, fitness_j and set eliminated rows to NaN (preserves type)
-            for index = 1:nrow(df_GA)
-                if in.(index, Ref(eliminated_j)) == true
-                    df_GA[index, :] = fill(NaN, ncol(df_GA))
-                end
-            end
-
-            # Construct vector for elite predictors
-            elite_j = setdiff(1:100, eliminated_j)
-
-            # Make 20 new predictors using GA procedure as `replacement_j`
-            replacement_j = Vector{Any}(undef, 0)
-
-            # Invoke one of the two possible GA procedures
-            if rand() ≤ model.pGAcrossover
-                for i = 1:model.num_elimination
-                    crossed_j = SFIArtificialStockMarket.GA_crossover(elite_j, df_GA, agent.active_j_records)
-                    replacement_j = push!(replacement_j, crossed_j)
-                end
-            else
-                for i = 1:model.num_elimination
-                    mutated_j = SFIArtificialStockMarket.GA_mutation(elite_j, df_GA, model.pcond_mut, model.a_min, model.a_max, model.b_min, model.b_max, model.pparam_mut_long, model.pparam_mut_short,
-                        model.percent_mut_short)
-                    replacement_j = push!(replacement_j, mutated_j)
-                end
-            end
-            #println(replacement_j)
-
-            # Merge `replacement_j` into `elite_j` using the eliminated indices from `eliminated_j`
-            sort!(eliminated_j)
-            j = 1
-            for index = 1:nrow(df_GA)
-                if in.(index, Ref(eliminated_j)) == true
-                    # Input replacement predictors
-                    df_GA[index, :predictors] = replacement_j[j]
-                    # make new predict_acc equal to current replacement_j variance
-                    df_GA[index, :predict_acc] = replacement_j[j][3]
-                    # calculate new fitness_j for each new replacement vec, same procedure as done in initialization
-                    s = count(!ismissing, df_GA[index, :predictors][4:15])
-                    f_j = -1 * (df_GA[index, :predict_acc]) - model.C * s
-                    df_GA[index, :fitness_j] = f_j
-                    # update active_j_records for new replacement predictors
-                    agent.active_j_records[index, 1] = 0
-                    agent.active_j_records[index, 2] = model.t
-                    j += 1
-                end
-            end
-
-            # update default predictor forecasting params to be weighted (1/σ_j) average of all other predictor forecasting params (a, b)
-            df_GA[100, :predictors][1] = sum(df_GA[i, :predictors][1] * (1 / df_GA[i, :predictors][3])
-                                             for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default a
-            df_GA[100, :predictors][2] = sum(df_GA[i, :predictors][2] * (1 / df_GA[i, :predictors][3])
-                                             for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default b
-
-            # Complete GA procedure and update respective Agent attributes from df_GA
-            agent.predictors = df_GA[:, :predictors]
-            agent.predict_acc = df_GA[:, :predict_acc]
-            agent.fitness_j = df_GA[:, :fitness_j]
+    # Update agent forecasting metrics
+    if model.t > model.τ
+        for agent in scheduled_agents
+            # SFIArtificialStockMarket.update_predict_acc!(agent.predict_acc, agent.active_predictors, agent.predictors, model.τ, model.price, model.dividend)
+            SFIArtificialStockMarket.update_predict_acc!(agent, model.τ, model.price, model.dividend)
         end
     end
+
+    # # Each individual agent checks to see if they are to be selected for GA 
+    # for agent in scheduled_agents
+    #     # Check recombination status, undergo GA if true
+    #     if in.(model.t, Ref(agent.δ)) == true
+    #         # Begin GA
+    #         for i = 1:length(agent.predict_acc)
+    #             # Update variance estimate of each predictor `σ_j` to its current active value `predict_acc`
+    #             agent.predictors[i][3] = agent.predict_acc[i]
+    #             # Update fitness measure of each predictor using new `σ_j`
+    #             s = count(!ismissing, agent.predictors[i][4:15])
+    #             f_j = -1 * (agent.predict_acc[i]) - model.C * s
+    #             agent.fitness_j[i] = f_j
+    #         end
+
+    #         # Worst performing (least fit) `num_elimination` predictors are collected for elimination
+    #         eliminated_j = sortperm(agent.fitness_j[1:99])[1:model.num_elimination] # excluding default vec
+
+    #         # Make new 1-100 organized dataframe for these next steps
+    #         df_GA = DataFrame(predict_acc = agent.predict_acc, fitness_j = agent.fitness_j, predictors = agent.predictors)
+    #         #allowmissing!(df_GA)
+
+    #         # Retain rows not included in eliminated_j for new `elite` vectors
+    #         # Isolate elite predictors, predict_acc, fitness_j and set eliminated rows to NaN (preserves type)
+    #         for index = 1:nrow(df_GA)
+    #             if in.(index, Ref(eliminated_j)) == true
+    #                 df_GA[index, :] = fill(NaN, ncol(df_GA))
+    #             end
+    #         end
+
+    #         # Construct vector for elite predictors
+    #         elite_j = setdiff(1:100, eliminated_j)
+
+    #         # Make 20 new predictors using GA procedure as `replacement_j`
+    #         replacement_j = Vector{Any}(undef, 0)
+
+    #         # Invoke one of the two possible GA procedures
+    #         if rand() ≤ model.pGAcrossover
+    #             for i = 1:model.num_elimination
+    #                 crossed_j = SFIArtificialStockMarket.GA_crossover(elite_j, df_GA, agent.active_j_records)
+    #                 replacement_j = push!(replacement_j, crossed_j)
+    #             end
+    #         else
+    #             for i = 1:model.num_elimination
+    #                 mutated_j = SFIArtificialStockMarket.GA_mutation(elite_j, df_GA, model.pcond_mut, model.a_min, model.a_max, model.b_min, model.b_max, model.pparam_mut_long, model.pparam_mut_short,
+    #                     model.percent_mut_short)
+    #                 replacement_j = push!(replacement_j, mutated_j)
+    #             end
+    #         end
+    #         #println(replacement_j)
+
+    #         # Merge `replacement_j` into `elite_j` using the eliminated indices from `eliminated_j`
+    #         sort!(eliminated_j)
+    #         j = 1
+    #         for index = 1:nrow(df_GA)
+    #             if in.(index, Ref(eliminated_j)) == true
+    #                 # Input replacement predictors
+    #                 df_GA[index, :predictors] = replacement_j[j]
+    #                 # make new predict_acc equal to current replacement_j variance
+    #                 df_GA[index, :predict_acc] = replacement_j[j][3]
+    #                 # calculate new fitness_j for each new replacement vec, same procedure as done in initialization
+    #                 s = count(!ismissing, df_GA[index, :predictors][4:15])
+    #                 f_j = -1 * (df_GA[index, :predict_acc]) - model.C * s
+    #                 df_GA[index, :fitness_j] = f_j
+    #                 # update active_j_records for new replacement predictors
+    #                 agent.active_j_records[index, 1] = 0
+    #                 agent.active_j_records[index, 2] = model.t
+    #                 j += 1
+    #             end
+    #         end
+
+    #         # update default predictor forecasting params to be weighted (1/σ_j) average of all other predictor forecasting params (a, b)
+    #         df_GA[100, :predictors][1] = sum(df_GA[i, :predictors][1] * (1 / df_GA[i, :predictors][3])
+    #                                          for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default a
+    #         df_GA[100, :predictors][2] = sum(df_GA[i, :predictors][2] * (1 / df_GA[i, :predictors][3])
+    #                                          for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default b
+
+    #         # Complete GA procedure and update respective Agent attributes from df_GA
+    #         agent.predictors = df_GA[:, :predictors]
+    #         agent.predict_acc = df_GA[:, :predict_acc]
+    #         agent.fitness_j = df_GA[:, :fitness_j]
+    #     end
+    # end
 
     # Each individual agent checks to see if they are to undergo generalization procedure
     for agent in scheduled_agents
