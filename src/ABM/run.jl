@@ -48,12 +48,12 @@ Create model, let it run, wrangle data, dance a tarantella.
 """
 function let_it_run()
     # agent data to collect
-    adata = [:relative_cash, :relative_holdings, :relative_wealth]
+    adata = [:relative_cash, :relative_holdings, :relative_wealth, :chosen_j]
 
     # model data to collect
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
-    # mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility]
-    mdata = [:t, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
+    mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
+    # mdata = [:t, :frac_bits_set, :frac_bits_fund, :frac_bits_tech] # for collect(0:260000) case
 
     # seeds = rand(UInt32, 50) # vector of random seeds
     seeds = rand(UInt32, 1) # vector of random seeds
@@ -72,8 +72,8 @@ function let_it_run()
     model_runs = 260000 # total numder of time steps in model
     steady_state = collect(250000:260000) # time steps where data is collected and stored locally
 
-    # model_runs = 1500 # total numder of time steps in model
-    # steady_state = collect(0:1500) # time steps where data is collected and stored locally
+    # model_runs = 20000 # total numder of time steps in model
+    # steady_state = collect(0:20000) # time steps where data is collected and stored locally
 
     # model_runs = 460000 # total numder of time steps in model
     # steady_state = collect(450000:460000) # time steps where data is collected and stored locally
