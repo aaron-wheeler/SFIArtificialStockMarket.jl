@@ -58,13 +58,13 @@ ERROR TERMS TO INCLUDE LATER**
 - For future user-input case, may need to specify that `GA_frequency` (T/k) needs to be an Int
 """
 function init_agents!(model)
-    T = model.warm_up_t + model.recorded_t # Total sim time
-    GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
-    n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
-    δ_dist_1 = repeat(Vector{Int}(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n) # - half of k_var
-    δ_dist_2 = repeat([model.k, model.k], n) # middle portion of k_var
-    δ_dist_3 = repeat(Vector{Int}((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n) # + half of k_var
-    δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
+    # T = model.warm_up_t + model.recorded_t # Total sim time
+    # GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
+    # n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
+    # δ_dist_1 = repeat(Vector{Int}(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n) # - half of k_var
+    # δ_dist_2 = repeat([model.k, model.k], n) # middle portion of k_var
+    # δ_dist_3 = repeat(Vector{Int}((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n) # + half of k_var
+    # δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
     for id in 1:model.num_agents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
         a = Trader(
             id = id,
@@ -76,7 +76,8 @@ function init_agents!(model)
         )
     
         a.predictors = SFIArtificialStockMarket.init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
-        a.δ, a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
+        # a.δ, a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
+        a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(model.σ_pd, model.C, model.num_predictors, a.predictors)
         # a.active_predictors, a.forecast = SFIArtificialStockMarket.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
@@ -146,7 +147,7 @@ function model_step!(model)
     # ## PREVIOUS MARKET CLEARING IMPLEMENTATION
 
     # # Price formation mechanism
-    # df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
+    # df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
     #     model.trade_restriction, model.short_restriction, model.itermax, model.price_min, model.price_max)
 
     # # Update price vector
@@ -264,7 +265,8 @@ function model_step!(model)
     # Each individual agent checks to see if they are to be selected for GA 
     for agent in scheduled_agents
         # Check recombination status, undergo GA if true
-        if in.(model.t, Ref(agent.δ)) == true
+        # if in.(model.t, Ref(agent.δ)) == true
+        if model.t > model.τ && rand() < (1 / model.k)
             # Begin GA
             for i = 1:length(agent.predict_acc)
                 # Update variance estimate of each predictor `σ_j` to its current active value `predict_acc`
@@ -274,14 +276,14 @@ function model_step!(model)
                 f_j = -1 * (agent.predict_acc[i]) - model.C * s
                 agent.fitness_j[i] = f_j
             end
-
+    
             # Worst performing (least fit) `num_elimination` predictors are collected for elimination
             eliminated_j = sortperm(agent.fitness_j[1:99])[1:model.num_elimination] # excluding default vec
-
+    
             # Make new 1-100 organized dataframe for these next steps
             df_GA = DataFrame(predict_acc = agent.predict_acc, fitness_j = agent.fitness_j, predictors = agent.predictors)
             #allowmissing!(df_GA)
-
+    
             # Retain rows not included in eliminated_j for new `elite` vectors
             # Isolate elite predictors, predict_acc, fitness_j and set eliminated rows to NaN (preserves type)
             for index = 1:nrow(df_GA)
@@ -289,13 +291,13 @@ function model_step!(model)
                     df_GA[index, :] = fill(NaN, ncol(df_GA))
                 end
             end
-
+    
             # Construct vector for elite predictors
             elite_j = setdiff(1:100, eliminated_j)
-
+    
             # Make 20 new predictors using GA procedure as `replacement_j`
             replacement_j = Vector{Any}(undef, 0)
-
+    
             # Invoke one of the two possible GA procedures
             if rand() ≤ model.pGAcrossover
                 for i = 1:model.num_elimination
@@ -310,7 +312,7 @@ function model_step!(model)
                 end
             end
             #println(replacement_j)
-
+    
             # Merge `replacement_j` into `elite_j` using the eliminated indices from `eliminated_j`
             sort!(eliminated_j)
             j = 1
@@ -330,13 +332,13 @@ function model_step!(model)
                     j += 1
                 end
             end
-
+    
             # update default predictor forecasting params to be weighted (1/σ_j) average of all other predictor forecasting params (a, b)
             df_GA[100, :predictors][1] = sum(df_GA[i, :predictors][1] * (1 / df_GA[i, :predictors][3])
                                              for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default a
             df_GA[100, :predictors][2] = sum(df_GA[i, :predictors][2] * (1 / df_GA[i, :predictors][3])
                                              for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default b
-
+    
             # Complete GA procedure and update respective Agent attributes from df_GA
             agent.predictors = df_GA[:, :predictors]
             agent.predict_acc = df_GA[:, :predict_acc]

@@ -4,8 +4,8 @@ Define model parameters.
 Please use `ABM/README.md` as a reference for what each field of this struct does.
 """
 Base.@kwdef mutable struct ModelProperties
-    num_agents::Int = 25
-    N::Int = 25
+    num_agents::Int # default value = 25
+    # N::Int = 25 # must be same value as num_agents; default value = 25
     λ::Float64 = 0.5
     num_predictors::Int = 100
     t::Int = 1
@@ -29,12 +29,12 @@ Base.@kwdef mutable struct ModelProperties
     technical_activity::Vector{Int} = []
     initialization_t::Int = 499
     generalization_t::Int = 4000
-    warm_up_t::Int = 250000
-    recorded_t::Int = 10000
+    # warm_up_t::Int = 250000 # move to run.jl?
+    # recorded_t::Int = 10000 # move to run.jl?
     k::Int # = 250 for complex regime
     pGAcrossover::Float64 # = 0.1 for complex regime
     τ::Int # = 75 for complex regime
-    num_shares::Int = 25
+    # num_shares::Int = 25 # never used
     r::Float64 = 0.1
     ρ::Float64 = 0.95
     d̄::Float64 = 10.0
@@ -46,7 +46,7 @@ Base.@kwdef mutable struct ModelProperties
     b_min::Float64 = -10.0
     b_max::Float64 = 19.002
     # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
-    k_var::Int = 40
+    # k_var::Int = 40 # **TODO: Remove this?**
     C::Float64 = 0.005
     price_min::Float64 = 0.01 # from 2008 textbook
     price_max::Float64 = 200.0 # from 2008 textbook
@@ -116,7 +116,7 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     fitness_j::Vector{Float64} = []
     chosen_j::Int = 100 # Remove this?
     demand_xi::Float64 = 0.0
-    δ::Vector{Int} = []
+    # δ::Vector{Int} = [] # Remove this?
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []
     active_j_records::Matrix{Int} = zeros(Int, 0, 0)

@@ -157,11 +157,7 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 # println(sum(δ)) # == T
 # println(mean(δ)) # == k
 """
-function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier for agent?
-    δ = Vector{Int}(undef, GA_frequency)
-    Distributions.sample!(δ_dist, δ; replace = false, ordered = false)
-    δ = cumsum(δ)
-
+function init_learning(σ_pd, C, num_predictors, predictors)
     predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
     fitness_j = Vector{Float64}(undef, 0)
     for i = 1:num_predictors
@@ -170,8 +166,24 @@ function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predicto
         fitness_j = push!(fitness_j, f_j)
     end
 
-    return δ, predict_acc, fitness_j #Append identifying number for predicts and fitnesses?
+    return predict_acc, fitness_j
 end
+
+# function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier for agent?
+#     δ = Vector{Int}(undef, GA_frequency)
+#     Distributions.sample!(δ_dist, δ; replace = false, ordered = false)
+#     δ = cumsum(δ)
+
+#     predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
+#     fitness_j = Vector{Float64}(undef, 0)
+#     for i = 1:num_predictors
+#         s = count(!ismissing, predictors[i][4:15]) # specificity, number of bits that are "set" (not missing)
+#         f_j = -1 * (predict_acc[i]) - C * s
+#         fitness_j = push!(fitness_j, f_j)
+#     end
+
+#     return δ, predict_acc, fitness_j #Append identifying number for predicts and fitnesses?
+# end
 
 
 ## Order Execution Mechanism 
@@ -305,8 +317,9 @@ ERROR TERMS TO INCLUDE LATER**
 - Convergence not reached for newton's method under itermax
 - demand_xi not being equivalent to 25 at end of rationing procedure
 """
-function get_demand!(num_agents, N, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings,
+function get_demand!(num_agents, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings,
     trade_restriction, short_restriction, itermax, price_min, price_max)
+    N = num_agents # number of shares is equivalent to number of agents in model 
     dt = last(dividend)
     Identifier = convert(Vector{Int}, expected_xi[1, :])
     a = convert(Vector{Float64}, expected_xi[2, :])
@@ -680,7 +693,7 @@ function update_predict_acc!(agent, τ, price, dividend)
             # agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] +
             #                        (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
             deviation = (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
-            if devation > 500.0
+            if deviation > 500.0
                 deviation = 500.0
             end
             agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] + (1 / τ) * deviation
