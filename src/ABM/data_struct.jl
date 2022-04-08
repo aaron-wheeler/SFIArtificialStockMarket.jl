@@ -23,10 +23,10 @@ Base.@kwdef mutable struct ModelProperties
     # bit12::Int = 0
     state_vector::Vector{Int} = []
     price::Vector{Float64} = []
-    dividend::Vector{Float64} = []
-    trading_volume::Vector{Float64} = []
-    volatility::Vector{Float64} = []
-    technical_activity::Vector{Int} = []
+    dividend::Vector{Float64} = [] # this does not need to be a vector *TODO: Fix this**
+    trading_volume::Float64 = 0.0
+    volatility::Float64 = 0.0
+    # technical_activity::Vector{Int} = [] incorporate later?
     initialization_t::Int = 499
     generalization_t::Int = 4000
     # warm_up_t::Int = 250000 # move to run.jl?
@@ -67,8 +67,8 @@ Base.@kwdef mutable struct ModelProperties
     percent_mut_short::Float64 = 0.05
     mdf_price::Float64 = 0.0 # for data collection and plotting
     mdf_dividend::Float64 = 0.0 # for data collection and plotting
-    mdf_trading_volume::Float64 = 0.0 # for data collection and plotting
-    mdf_volatility::Float64 = 0.0 # for data collection and plotting
+    # mdf_trading_volume::Float64 = 0.0 # for data collection and plotting
+    # mdf_volatility::Float64 = 0.0 # for data collection and plotting
     frac_bits_set::Float64 = 0.0 # for data collection and plotting
     frac_bits_fund::Float64 = 0.0 # for data collection and plotting
     frac_bits_tech::Float64 = 0.0 # for data collection and plotting

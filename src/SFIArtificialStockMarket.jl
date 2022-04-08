@@ -609,14 +609,14 @@ Trading volume measured as the number of shares that have changed hands during t
 - How Can Trading Volume Exceed Shares Outstanding?
 https://www.investopedia.com/ask/answers/041015/why-trading-volume-important-investors.asp
 """
-function update_trading_volume!(num_agents, df_trades, trading_volume)
+function update_trading_volume!(num_agents, df_trades)
     volume_t = 0
     for i = 1:num_agents
         if df_trades[i, :shares_traded] > 0
             volume_t += getindex(df_trades[i, :shares_traded])
         end
     end
-    push!(trading_volume, volume_t)
+    return volume_t
 end
 
 """
@@ -627,7 +627,7 @@ Update historical volatility vector
 function update_volatility!(price, volatility)
     hist_p30 = price[(end-29):(end)]
     sd_p30 = sqrt((sum((hist_p30 .- mean(hist_p30)) .^ 2)) / 30)
-    push!(volatility, sd_p30)
+    return sd_p30
 end
 
 

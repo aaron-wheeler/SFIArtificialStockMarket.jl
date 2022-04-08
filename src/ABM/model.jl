@@ -99,6 +99,7 @@ function model_step!(model)
 
     # Exogenously determine dividend and post for all agents
     model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+    popfirst!(model.dividend)
 
     # Adjust agent dividend and fixed income asset earnings and pay taxes
     for agent in scheduled_agents
@@ -157,10 +158,10 @@ function model_step!(model)
     # df_trades = SFIArtificialStockMarket.get_trades!(df_demand, clearing_price, model.cash_restriction)
 
     # # Update trading volume vector
-    # SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
+    # model.trading_volume = SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades)
 
     # # Update historical volatility vector
-    # SFIArtificialStockMarket.update_volatility!(model.price, model.volatility)
+    # model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
 
     # # Calculate and update individual agent financial rewards (cash and holdings)
     # for agent in scheduled_agents
@@ -244,12 +245,13 @@ function model_step!(model)
 
     # Update price vector
     model.price = push!(model.price, clearing_price)
+    popfirst!(model.price)
 
-    # Update trading volume vector
-    model.trading_volume = push!(model.trading_volume, volume)
+    # Update trading volume
+    model.trading_volume = volume
 
-    # Update historical volatility vector
-    SFIArtificialStockMarket.update_volatility!(model.price, model.volatility)
+    # Update historical volatility
+    model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
 
     ## END OF NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
 
@@ -276,14 +278,14 @@ function model_step!(model)
                 f_j = -1 * (agent.predict_acc[i]) - model.C * s
                 agent.fitness_j[i] = f_j
             end
-    
+
             # Worst performing (least fit) `num_elimination` predictors are collected for elimination
             eliminated_j = sortperm(agent.fitness_j[1:99])[1:model.num_elimination] # excluding default vec
-    
+
             # Make new 1-100 organized dataframe for these next steps
             df_GA = DataFrame(predict_acc = agent.predict_acc, fitness_j = agent.fitness_j, predictors = agent.predictors)
             #allowmissing!(df_GA)
-    
+
             # Retain rows not included in eliminated_j for new `elite` vectors
             # Isolate elite predictors, predict_acc, fitness_j and set eliminated rows to NaN (preserves type)
             for index = 1:nrow(df_GA)
@@ -291,13 +293,13 @@ function model_step!(model)
                     df_GA[index, :] = fill(NaN, ncol(df_GA))
                 end
             end
-    
+
             # Construct vector for elite predictors
             elite_j = setdiff(1:100, eliminated_j)
-    
+
             # Make 20 new predictors using GA procedure as `replacement_j`
             replacement_j = Vector{Any}(undef, 0)
-    
+
             # Invoke one of the two possible GA procedures
             if rand() ≤ model.pGAcrossover
                 for i = 1:model.num_elimination
@@ -312,7 +314,7 @@ function model_step!(model)
                 end
             end
             #println(replacement_j)
-    
+
             # Merge `replacement_j` into `elite_j` using the eliminated indices from `eliminated_j`
             sort!(eliminated_j)
             j = 1
@@ -332,13 +334,13 @@ function model_step!(model)
                     j += 1
                 end
             end
-    
+
             # update default predictor forecasting params to be weighted (1/σ_j) average of all other predictor forecasting params (a, b)
             df_GA[100, :predictors][1] = sum(df_GA[i, :predictors][1] * (1 / df_GA[i, :predictors][3])
                                              for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default a
             df_GA[100, :predictors][2] = sum(df_GA[i, :predictors][2] * (1 / df_GA[i, :predictors][3])
                                              for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default b
-    
+
             # Complete GA procedure and update respective Agent attributes from df_GA
             agent.predictors = df_GA[:, :predictors]
             agent.predict_acc = df_GA[:, :predict_acc]
@@ -382,10 +384,10 @@ function model_step!(model)
     model.frac_bits_tech = model.frac_bits_tech / (model.num_predictors * 4 * model.num_agents) # 4 technical bits in predictor
 
     # Update mdf collection variables (have to do this bc these are vectors) **TODO: Reconsider having these as growing vectors in first place?? Make just big enough to for state_vector?
-    model.mdf_price = last(model.price)
+    model.mdf_price = clearing_price
     model.mdf_dividend = last(model.dividend)
-    model.mdf_trading_volume = last(model.trading_volume)
-    model.mdf_volatility = last(model.volatility)
+    # model.mdf_trading_volume = model.trading_volume
+    # model.mdf_volatility = model.volatility
 
     # Time tracking print messages (for debugging)
     if model.t % 10000 == 0
