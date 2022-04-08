@@ -52,7 +52,7 @@ function let_it_run()
 
     # model data to collect
     # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
-    mdata = [:t, :mdf_price, :mdf_dividend, :mdf_trading_volume, :mdf_volatility, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
+    mdata = [:t, :mdf_price, :mdf_dividend, :trading_volume, :volatility, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
     # mdata = [:t, :frac_bits_set, :frac_bits_fund, :frac_bits_tech] # for collect(0:260000) case
 
     # seeds = rand(UInt32, 50) # vector of random seeds
@@ -61,6 +61,7 @@ function let_it_run()
     # Setup parameters (for complex or rational)
     # complex regime
     properties = (
+        num_agents = 25,
         k = 250,
         pGAcrossover = 0.1,
         τ = 75
@@ -69,8 +70,14 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
 
     # Collect data (ensemble simulation for multiple random seeded models)
-    model_runs = 260000 # total numder of time steps in model
-    steady_state = collect(250000:260000) # time steps where data is collected and stored locally
+    pre_SS_t = 260000 # number of time steps to warm up and reach steady state 
+    recorded_t = 10000 # time steps recorded once steady state is reached
+
+    model_runs = pre_SS_t + recorded_t # total numder of time steps in model
+    steady_state = collect(pre_SS_t:model_runs) # time steps where data is collected and stored locally
+
+    # model_runs = 260000 # total numder of time steps in model
+    # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
 
     # model_runs = 20000 # total numder of time steps in model
     # steady_state = collect(0:20000) # time steps where data is collected and stored locally

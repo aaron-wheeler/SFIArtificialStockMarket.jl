@@ -58,13 +58,13 @@ ERROR TERMS TO INCLUDE LATER**
 - For future user-input case, may need to specify that `GA_frequency` (T/k) needs to be an Int
 """
 function init_agents!(model)
-    T = model.warm_up_t + model.recorded_t # Total sim time
-    GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
-    n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
-    δ_dist_1 = repeat(Vector{Int}(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n) # - half of k_var
-    δ_dist_2 = repeat([model.k, model.k], n) # middle portion of k_var
-    δ_dist_3 = repeat(Vector{Int}((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n) # + half of k_var
-    δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
+    # T = model.warm_up_t + model.recorded_t # Total sim time
+    # GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
+    # n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
+    # δ_dist_1 = repeat(Vector{Int}(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n) # - half of k_var
+    # δ_dist_2 = repeat([model.k, model.k], n) # middle portion of k_var
+    # δ_dist_3 = repeat(Vector{Int}((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n) # + half of k_var
+    # δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
     for id in 1:model.num_agents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
         a = Trader(
             id = id,
@@ -76,7 +76,8 @@ function init_agents!(model)
         )
     
         a.predictors = SFIArtificialStockMarket.init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
-        a.δ, a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
+        # a.δ, a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
+        a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(model.σ_pd, model.C, model.num_predictors, a.predictors)
         # a.active_predictors, a.forecast = SFIArtificialStockMarket.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
@@ -98,6 +99,7 @@ function model_step!(model)
 
     # Exogenously determine dividend and post for all agents
     model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+    popfirst!(model.dividend)
 
     # Adjust agent dividend and fixed income asset earnings and pay taxes
     for agent in scheduled_agents
@@ -146,7 +148,7 @@ function model_step!(model)
     # ## PREVIOUS MARKET CLEARING IMPLEMENTATION
 
     # # Price formation mechanism
-    # df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.N, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
+    # df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
     #     model.trade_restriction, model.short_restriction, model.itermax, model.price_min, model.price_max)
 
     # # Update price vector
@@ -156,10 +158,10 @@ function model_step!(model)
     # df_trades = SFIArtificialStockMarket.get_trades!(df_demand, clearing_price, model.cash_restriction)
 
     # # Update trading volume vector
-    # SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades, model.trading_volume)
+    # model.trading_volume = SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades)
 
     # # Update historical volatility vector
-    # SFIArtificialStockMarket.update_volatility!(model.price, model.volatility)
+    # model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
 
     # # Calculate and update individual agent financial rewards (cash and holdings)
     # for agent in scheduled_agents
@@ -243,12 +245,13 @@ function model_step!(model)
 
     # Update price vector
     model.price = push!(model.price, clearing_price)
+    popfirst!(model.price)
 
-    # Update trading volume vector
-    model.trading_volume = push!(model.trading_volume, volume)
+    # Update trading volume
+    model.trading_volume = volume
 
-    # Update historical volatility vector
-    SFIArtificialStockMarket.update_volatility!(model.price, model.volatility)
+    # Update historical volatility
+    model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
 
     ## END OF NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
 
@@ -264,7 +267,8 @@ function model_step!(model)
     # Each individual agent checks to see if they are to be selected for GA 
     for agent in scheduled_agents
         # Check recombination status, undergo GA if true
-        if in.(model.t, Ref(agent.δ)) == true
+        # if in.(model.t, Ref(agent.δ)) == true
+        if model.t > model.τ && rand() < (1 / model.k)
             # Begin GA
             for i = 1:length(agent.predict_acc)
                 # Update variance estimate of each predictor `σ_j` to its current active value `predict_acc`
@@ -380,10 +384,10 @@ function model_step!(model)
     model.frac_bits_tech = model.frac_bits_tech / (model.num_predictors * 4 * model.num_agents) # 4 technical bits in predictor
 
     # Update mdf collection variables (have to do this bc these are vectors) **TODO: Reconsider having these as growing vectors in first place?? Make just big enough to for state_vector?
-    model.mdf_price = last(model.price)
+    model.mdf_price = clearing_price
     model.mdf_dividend = last(model.dividend)
-    model.mdf_trading_volume = last(model.trading_volume)
-    model.mdf_volatility = last(model.volatility)
+    # model.mdf_trading_volume = model.trading_volume
+    # model.mdf_volatility = model.volatility
 
     # Time tracking print messages (for debugging)
     if model.t % 10000 == 0
