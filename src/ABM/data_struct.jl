@@ -21,9 +21,9 @@ Base.@kwdef mutable struct ModelProperties
     # bit10::Int = 0
     # bit11::Int = 1
     # bit12::Int = 0
-    state_vector::Vector{Int} = []
+    state_vector::Vector{Int} = Vector{Int}(undef, 12)
     price::Vector{Float64} = []
-    dividend::Vector{Float64} = [] # this does not need to be a vector *TODO: Fix this**
+    dividend::Vector{Float64} = Vector{Float64}(undef, 2)
     trading_volume::Float64 = 0.0
     volatility::Float64 = 0.0
     # technical_activity::Vector{Int} = [] incorporate later?

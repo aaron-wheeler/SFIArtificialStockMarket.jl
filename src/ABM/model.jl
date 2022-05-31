@@ -30,23 +30,25 @@ Initialize market state.
 """
 function init_state!(model)
     # instantiate price and dividend
-    dividend = Vector{Float64}(undef, 0)
+    # dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
-    price = Vector{Float64}(undef, 0)
+    # price = Vector{Float64}(undef, 0)
     init_price = init_dividend / model.r    
-    model.price = push!(price, init_price)
-    model.dividend = push!(dividend, init_dividend)
+    model.price = push!(model.price, init_price)
+    # model.dividend = push!(model.dividend, init_dividend)
+    model.dividend[2] = init_dividend
     
     # Initialization period, generate historical dividend and prices
     price_div_history_t = 1
     while price_div_history_t <= model.initialization_t
-        model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+        # model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+        SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
         model.price = push!(model.price, (last(model.dividend) / model.r))
         price_div_history_t += 1
     end
 
     # generate first state bit vector sequence
-    model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
+    SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     return model
 end
@@ -98,8 +100,9 @@ function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
     # Exogenously determine dividend and post for all agents
-    model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
-    popfirst!(model.dividend)
+    # model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+    # popfirst!(model.dividend)
+    SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
 
     # Adjust agent dividend and fixed income asset earnings and pay taxes
     for agent in scheduled_agents
@@ -116,7 +119,8 @@ function model_step!(model)
     end
 
     # Update market state vector
-    model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
+    # model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
+    SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     # Agent expectation steps
     for agent in scheduled_agents

@@ -22,12 +22,18 @@ using Roots
 Autoregressive dividend process is appended to vector and made public to all agents
 Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
 """
-function dividend_process(d̄, ρ, dividend, σ_ε)
-    ε = rand(Normal(0.0, σ_ε)) # way to include random seed? Move this to model.jl?
-    dt = d̄ + ρ * (last(dividend) - d̄) + ε
-    dividend = push!(dividend, dt)
-    return dividend
+function dividend_process!(dividend, d̄, ρ, σ_ε)
+    ε = rand(Normal(0.0,σ_ε))
+    dt = d̄ + ρ*(last(dividend) - d̄) + ε
+    dividend[1] = dividend[2]
+    dividend[2] = dt
 end
+# function dividend_process(d̄, ρ, dividend, σ_ε)
+#     ε = rand(Normal(0.0, σ_ε)) # way to include random seed? Move this to model.jl?
+#     dt = d̄ + ρ * (last(dividend) - d̄) + ε
+#     dividend = push!(dividend, dt)
+#     return dividend
+# end
 
 """
     `update_market_vector() → bit 1-12`
@@ -36,79 +42,148 @@ Update global market state bit vector, assign "1" or "0" values depending on the
 Signal present -> "1"
 Signal absent -> "0"
 """
-function update_market_vector(price, dividend, r)
+function update_market_vector!(state_vector, price, dividend, r)
     # Fundamental bits
     if last(price) * r / last(dividend) > 0.25
-        bit1 = 1
+        state_vector[1] = 1
     else
-        bit1 = 0
+        state_vector[1] = 0
     end
 
     if last(price) * r / last(dividend) > 0.5
-        bit2 = 1
+        state_vector[2] = 1
     else
-        bit2 = 0
+        state_vector[2] = 0
     end
 
     if last(price) * r / last(dividend) > 0.75
-        bit3 = 1
+        state_vector[3] = 1
     else
-        bit3 = 0
+        state_vector[3] = 0
     end
 
     if last(price) * r / last(dividend) > 0.875
-        bit4 = 1
+        state_vector[4] = 1
     else
-        bit4 = 0
+        state_vector[4] = 0
     end
 
     if last(price) * r / last(dividend) > 1.0
-        bit5 = 1
+        state_vector[5] = 1
     else
-        bit5 = 0
+        state_vector[5] = 0
     end
 
     if last(price) * r / last(dividend) > 1.125
-        bit6 = 1
+        state_vector[6] = 1
     else
-        bit6 = 0
+        state_vector[6] = 0
     end
 
     # Technical bits, the `period` in MA formula is set to 1 time step
-    if last(price) > mean(price[(end-6):end])
-        bit7 = 1
+    if last(price) > mean(@view price[(end-6):end])
+        state_vector[7] = 1
     else
-        bit7 = 0
+        state_vector[7] = 0
     end
 
-    if last(price) > mean(price[(end-9):end])
-        bit8 = 1
+    if last(price) > mean(@view price[(end-9):end])
+        state_vector[8] = 1
     else
-        bit8 = 0
+        state_vector[8] = 0
     end
 
-    if last(price) > mean(price[(end-99):end])
-        bit9 = 1
+    if last(price) > mean(@view price[(end-99):end])
+        state_vector[9] = 1
     else
-        bit9 = 0
+        state_vector[9] = 0
     end
 
-    if last(price) > mean(price[(end-499):end])
-        bit10 = 1
+    if last(price) > mean(@view price[(end-499):end])
+        state_vector[10] = 1
     else
-        bit10 = 0
+        state_vector[10] = 0
     end
 
     # Default bits, always on/off
-    bit11 = 1
+    state_vector[11] = 1
 
-    bit12 = 0
-
-    # Construct vector
-    state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
-
-    return state_vector
+    state_vector[12] = 0
 end
+
+# function update_market_vector(price, dividend, r)
+#     # Fundamental bits
+#     if last(price) * r / last(dividend) > 0.25
+#         bit1 = 1
+#     else
+#         bit1 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 0.5
+#         bit2 = 1
+#     else
+#         bit2 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 0.75
+#         bit3 = 1
+#     else
+#         bit3 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 0.875
+#         bit4 = 1
+#     else
+#         bit4 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 1.0
+#         bit5 = 1
+#     else
+#         bit5 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 1.125
+#         bit6 = 1
+#     else
+#         bit6 = 0
+#     end
+
+#     # Technical bits, the `period` in MA formula is set to 1 time step
+#     if last(price) > mean(price[(end-6):end])
+#         bit7 = 1
+#     else
+#         bit7 = 0
+#     end
+
+#     if last(price) > mean(price[(end-9):end])
+#         bit8 = 1
+#     else
+#         bit8 = 0
+#     end
+
+#     if last(price) > mean(price[(end-99):end])
+#         bit9 = 1
+#     else
+#         bit9 = 0
+#     end
+
+#     if last(price) > mean(price[(end-499):end])
+#         bit10 = 1
+#     else
+#         bit10 = 0
+#     end
+
+#     # Default bits, always on/off
+#     bit11 = 1
+
+#     bit12 = 0
+
+#     # Construct vector
+#     state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
+
+#     return state_vector
+# end
 
 ## Initialization (done for each agent individually)
 

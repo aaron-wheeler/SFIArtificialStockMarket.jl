@@ -71,7 +71,7 @@ function let_it_run()
 
     # Collect data (ensemble simulation for multiple random seeded models)
     pre_SS_t = 0 # number of time steps to warm up and reach steady state 
-    recorded_t = 1000 # time steps recorded once steady state is reached
+    recorded_t = 1 # time steps recorded once steady state is reached
 
     model_runs = pre_SS_t + recorded_t # total numder of time steps in model
     steady_state = collect(pre_SS_t:model_runs) # time steps where data is collected and stored locally
