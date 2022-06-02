@@ -8,7 +8,7 @@ using Random
 using StatsBase
 using ForwardDiff
 using DataFrames
-using MLStyle
+using StaticArrays
 using Statistics
 using JuMP
 using Ipopt
@@ -22,12 +22,18 @@ using Roots
 Autoregressive dividend process is appended to vector and made public to all agents
 Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
 """
-function dividend_process(d̄, ρ, dividend, σ_ε)
-    ε = rand(Normal(0.0, σ_ε)) # way to include random seed? Move this to model.jl?
-    dt = d̄ + ρ * (last(dividend) - d̄) + ε
-    dividend = push!(dividend, dt)
-    return dividend
+function dividend_process!(dividend, d̄, ρ, σ_ε)
+    ε = rand(Normal(0.0,σ_ε))
+    dt = d̄ + ρ*(last(dividend) - d̄) + ε
+    dividend[1] = dividend[2]
+    dividend[2] = dt
 end
+# function dividend_process(d̄, ρ, dividend, σ_ε)
+#     ε = rand(Normal(0.0, σ_ε)) # way to include random seed? Move this to model.jl?
+#     dt = d̄ + ρ * (last(dividend) - d̄) + ε
+#     dividend = push!(dividend, dt)
+#     return dividend
+# end
 
 """
     `update_market_vector() → bit 1-12`
@@ -36,113 +42,212 @@ Update global market state bit vector, assign "1" or "0" values depending on the
 Signal present -> "1"
 Signal absent -> "0"
 """
-function update_market_vector(price, dividend, r)
+function update_market_vector!(state_vector, price, dividend, r)
     # Fundamental bits
     if last(price) * r / last(dividend) > 0.25
-        bit1 = 1
+        state_vector[1] = 1
     else
-        bit1 = 0
+        state_vector[1] = 0
     end
 
     if last(price) * r / last(dividend) > 0.5
-        bit2 = 1
+        state_vector[2] = 1
     else
-        bit2 = 0
+        state_vector[2] = 0
     end
 
     if last(price) * r / last(dividend) > 0.75
-        bit3 = 1
+        state_vector[3] = 1
     else
-        bit3 = 0
+        state_vector[3] = 0
     end
 
     if last(price) * r / last(dividend) > 0.875
-        bit4 = 1
+        state_vector[4] = 1
     else
-        bit4 = 0
+        state_vector[4] = 0
     end
 
     if last(price) * r / last(dividend) > 1.0
-        bit5 = 1
+        state_vector[5] = 1
     else
-        bit5 = 0
+        state_vector[5] = 0
     end
 
     if last(price) * r / last(dividend) > 1.125
-        bit6 = 1
+        state_vector[6] = 1
     else
-        bit6 = 0
+        state_vector[6] = 0
     end
 
     # Technical bits, the `period` in MA formula is set to 1 time step
-    if last(price) > mean(price[(end-6):end])
-        bit7 = 1
+    if last(price) > mean(@view price[(end-6):end])
+        state_vector[7] = 1
     else
-        bit7 = 0
+        state_vector[7] = 0
     end
 
-    if last(price) > mean(price[(end-9):end])
-        bit8 = 1
+    if last(price) > mean(@view price[(end-9):end])
+        state_vector[8] = 1
     else
-        bit8 = 0
+        state_vector[8] = 0
     end
 
-    if last(price) > mean(price[(end-99):end])
-        bit9 = 1
+    if last(price) > mean(@view price[(end-99):end])
+        state_vector[9] = 1
     else
-        bit9 = 0
+        state_vector[9] = 0
     end
 
-    if last(price) > mean(price[(end-499):end])
-        bit10 = 1
+    if last(price) > mean(@view price[(end-499):end])
+        state_vector[10] = 1
     else
-        bit10 = 0
+        state_vector[10] = 0
     end
 
     # Default bits, always on/off
-    bit11 = 1
+    state_vector[11] = 1
 
-    bit12 = 0
-
-    # Construct vector
-    state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
-
-    return state_vector
+    state_vector[12] = 0
 end
+
+# function update_market_vector(price, dividend, r)
+#     # Fundamental bits
+#     if last(price) * r / last(dividend) > 0.25
+#         bit1 = 1
+#     else
+#         bit1 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 0.5
+#         bit2 = 1
+#     else
+#         bit2 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 0.75
+#         bit3 = 1
+#     else
+#         bit3 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 0.875
+#         bit4 = 1
+#     else
+#         bit4 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 1.0
+#         bit5 = 1
+#     else
+#         bit5 = 0
+#     end
+
+#     if last(price) * r / last(dividend) > 1.125
+#         bit6 = 1
+#     else
+#         bit6 = 0
+#     end
+
+#     # Technical bits, the `period` in MA formula is set to 1 time step
+#     if last(price) > mean(price[(end-6):end])
+#         bit7 = 1
+#     else
+#         bit7 = 0
+#     end
+
+#     if last(price) > mean(price[(end-9):end])
+#         bit8 = 1
+#     else
+#         bit8 = 0
+#     end
+
+#     if last(price) > mean(price[(end-99):end])
+#         bit9 = 1
+#     else
+#         bit9 = 0
+#     end
+
+#     if last(price) > mean(price[(end-499):end])
+#         bit10 = 1
+#     else
+#         bit10 = 0
+#     end
+
+#     # Default bits, always on/off
+#     bit11 = 1
+
+#     bit12 = 0
+
+#     # Construct vector
+#     state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
+
+#     return state_vector
+# end
 
 ## Initialization (done for each agent individually)
 
 """
     `init_predictors() → predictors`
 
-Agent `predictors` vector is coupled to unique `id`.
-
-**Should accuracy and fitness measure also be appended to each predictor?
+Agent `predictors` vector is coupled to a unique vector of vectors, where the individual predictors are the 
+innermost vectors and are formatted consistently for j = {1, 2,... num_predictors}:
+    predictor_j[1:3] = [a_j, b_j, σ_j]
+    predictor_j[4:15] = 0, 1, or missing by probability distribution
+The final predictor is a default predictor that is matched in all market states. 
 """
-function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max) # Add an identifier? 
-    predictors = Vector{Any}(undef, 0)
+function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max)
+    predictors = Vector{Any}(undef, num_predictors)
     for i = 1:(num_predictors-1) # minus one so that we can add default predictor
-        heterogeneity = Vector{Any}(undef, 3)
-        heterogeneity[1] = rand(Uniform(a_min, a_max)) # a
-        heterogeneity[2] = rand(Uniform(b_min, b_max)) # b 
-        heterogeneity[3] = σ_pd # initial σ_i = σ_pd
-        bit_vec = Vector{Any}(undef, 12)
-        Distributions.sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec)
-        bit_vec = vcat(heterogeneity, bit_vec)
-        predictors = push!(predictors, bit_vec)
+        bit_vec = Vector{Any}(undef, 15) # 15 total elements in bit vector
+        # bit heterogeneity for elements [1:3]
+        bit_vec[1] = rand(Uniform(a_min, a_max)) # a
+        bit_vec[2] = rand(Uniform(b_min, b_max)) # b 
+        bit_vec[3] = σ_pd # initial σ_i = σ_pd
+        # bit indicators for elements [4:15]
+        bits = @view bit_vec[4:15]
+        indicator = @SVector [missing, 1, 0]
+        p_indicator = @SVector [0.9, 0.05, 0.05] # TODO: Make weights non-hardcoded
+        Distributions.sample!(indicator, Weights(p_indicator), bits) 
+        predictors[i] = bit_vec
     end
     # default predictor
-    default_heterogeneity = Vector{Any}(undef, 3)
-    default_heterogeneity[1] = sum(predictors[i][1] * (1 / predictors[i][3])
+    default_bit_vec = Vector{Any}(missing, 15)
+    # default heterogeneity
+    default_bit_vec[1] = sum(predictors[i][1] * (1 / predictors[i][3])
                                    for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default a
-    default_heterogeneity[2] = sum(predictors[i][2] * (1 / predictors[i][3])
+    default_bit_vec[2] = sum(predictors[i][2] * (1 / predictors[i][3])
                                    for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default b 
-    default_heterogeneity[3] = σ_pd # initial default σ_i = σ_pd
-    default_bit_vec = Vector{Any}(missing, 12)
-    default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
-    predictors = push!(predictors, default_bit_vec)
-    return predictors # append indentifiers for each predictor?
+    default_bit_vec[3] = σ_pd # initial default σ_i = σ_pd
+    predictors[num_predictors] = default_bit_vec
+    return predictors
 end
+
+
+# function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max) # Add an identifier? 
+#     predictors = Vector{Any}(undef, 0)
+#     for i = 1:(num_predictors-1) # minus one so that we can add default predictor
+#         heterogeneity = Vector{Any}(undef, 3)
+#         heterogeneity[1] = rand(Uniform(a_min, a_max)) # a
+#         heterogeneity[2] = rand(Uniform(b_min, b_max)) # b 
+#         heterogeneity[3] = σ_pd # initial σ_i = σ_pd
+#         bit_vec = Vector{Any}(undef, 12)
+#         Distributions.sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec) # TODO: Make weights not hardcoded
+#         bit_vec = vcat(heterogeneity, bit_vec)
+#         predictors = push!(predictors, bit_vec)
+#     end
+#     # default predictor
+#     default_heterogeneity = Vector{Any}(undef, 3)
+#     default_heterogeneity[1] = sum(predictors[i][1] * (1 / predictors[i][3])
+#                                    for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default a
+#     default_heterogeneity[2] = sum(predictors[i][2] * (1 / predictors[i][3])
+#                                    for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default b 
+#     default_heterogeneity[3] = σ_pd # initial default σ_i = σ_pd
+#     default_bit_vec = Vector{Any}(missing, 12)
+#     default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
+#     predictors = push!(predictors, default_bit_vec)
+#     return predictors # append indentifiers for each predictor?
+# end
 
 
 """
@@ -158,12 +263,11 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 # println(mean(δ)) # == k
 """
 function init_learning(σ_pd, C, num_predictors, predictors)
-    predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
-    fitness_j = Vector{Float64}(undef, 0)
+    predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period
+    fitness_j = Vector{Float64}(undef, num_predictors)
     for i = 1:num_predictors
-        s = count(!ismissing, predictors[i][4:15]) # specificity, number of bits that are "set" (not missing)
-        f_j = -1 * (predict_acc[i]) - C * s
-        fitness_j = push!(fitness_j, f_j)
+        s = count(!ismissing, (@view predictors[i][4:15])) # `specificity`, number of bits that are "set" (not missing)
+        fitness_j[i] = -1 * (predict_acc[i]) - C * s
     end
 
     return predict_acc, fitness_j
@@ -203,40 +307,32 @@ end
 **Need to know index of predictor sent to demand (chosen_j) for any reason? Not returned here, just its a, b, etc.
 """
 function match_predictors(id, num_predictors, predictors, state_vector, predict_acc, fitness_j, σ_pd)
-    # Initialize matrix to store indices of all active predictors
+    # Initialize vector to store indices of all active predictors
     active_predictors = Int[]
 
-    # nested function to match predictor and state vector bits (only used here)
-    match_predict(bit_j, predictor_j, j_id) =
-        for signal = 1:12
-            @match bit_j begin
-                if bit_j[signal] === missing || bit_j[signal] == state_vector[signal]
-                end => push!(predictor_j, j_id)
-                _ => continue
-            end
-        end
-
     for j = 1:num_predictors
-        # reset predictor_j with each iteration
-        predictor_j = Vector{Int}(undef, 0)
+        # reset predictor_j_match with each iteration
+        predictor_j_match = 0
         j_id = j
 
-        # call nested function to see if predictor[j] bits match the state vector
-        match_predict(predictors[j][4:15], predictor_j, j_id)
+        # make nested function call to see if predictor[j] bits match the state vector
+        bit_j = @view predictors[j][4:15]
+        predictor_j_match = match_predict(bit_j, state_vector)
 
-        # if predictor[j] meets match criteria, append to active_predictors matrix
-        if length(predictor_j) == 12
-            active_predictors = push!(active_predictors, predictor_j[1])
+        # if predictor[j] meets match criteria, append to active_predictors 
+        if predictor_j_match == 12
+            active_predictors = push!(active_predictors, j_id)
         else
             nothing
         end
-
     end
 
-    matched_collection = zeros(Int, 3, 0)
+    matched_collection = zeros(Float64, 3, length(active_predictors))
 
     for (index, value) in pairs(IndexStyle(active_predictors), active_predictors)
-        matched_collection = hcat(matched_collection, [value, predict_acc[value], fitness_j[value]])
+        matched_collection[1, index] = value
+        matched_collection[2, index] = predict_acc[value]
+        matched_collection[3, index] = fitness_j[value]
     end
 
     row, col = size(matched_collection)
@@ -255,27 +351,12 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
     # Set chosen_j to index of predictor used to form agent demand
     chosen_j = 0
     # indices where all minima are found, minima because highest accuracy is one with lowest squarest forecast error
-    highest_acc = findall(matched_collection[2, :] .== minimum(matched_collection[2, :]))
+    highest_acc = findall((@view matched_collection[2, :]) .== minimum((@view matched_collection[2, :])))
 
     if length(highest_acc) == 1
         chosen_j = Int(matched_collection[1, getindex(highest_acc)])
     else
-        # highest_fitness = findall(matched_collection[3, :] .== maximum(matched_collection[3, :]))
-        # fittest_acc = Vector{Int}(undef, 0)
-
-        # for i = 1:size(matched_collection, 2)
-        #     if in.(i, Ref(highest_acc)) == true && in.(i, Ref(highest_fitness)) == true
-        #         fittest_acc = push!(fittest_acc, i)
-        #     end
-        # end
-
-        # if length(fittest_acc) == 1
-        #     chosen_j = Int(matched_collection[1, getindex(fittest_acc)])
-        # else
-        #     # length(fittest_acc) > 1, pick one randomly?
-        #     chosen_j = 100
-        # end
-        fit_j = matched_collection[:, getindex([highest_acc])]
+        fit_j = @view matched_collection[:, getindex([highest_acc])]
         fittest = StatsBase.sample(findall(fit_j[3, :] .== maximum(fit_j[3, :])))
         chosen_j = Int(fit_j[1, fittest])
     end
@@ -287,6 +368,20 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
     forecast = vcat(id, forecast)
 
     return active_predictors, forecast, chosen_j
+end
+
+# nested function to match predictor and state vector bits (only used here)
+function match_predict(bit_j, state_vector)
+    predictor_j_match = 0
+    for signal = 1:12
+        if bit_j[signal] === missing || bit_j[signal] == state_vector[signal] # short-cicuit `or`
+            predictor_j_match += 1
+        else
+            continue
+        end
+    end
+
+    return predictor_j_match
 end
 
 
@@ -637,11 +732,14 @@ Update value tracking the fraction of "set" (i.e., non-missing) bits present in 
 Tracking 3 fractions here, number of "set" bits over: all 12 bits(including the dummy ones), 6 fundamental bits, and the 4 technical bits.
 These values will then be averaged over all agents and all predictors (done in model.jl). 
 """
-function update_frac_bits!(predictors, frac_bits_set, frac_bits_fund, frac_bits_tech)
+function update_frac_bits(predictors)
+    frac_bits_set = 0
+    frac_bits_fund = 0
+    frac_bits_tech = 0
     for i = 1:length(predictors)
-        s_all = count(!ismissing, predictors[i][4:15]) # total number of "set" bits
-        s_fund = count(!ismissing, predictors[i][4:9]) # total number of "set" fundamental bits
-        s_tech = count(!ismissing, predictors[i][10:13]) # total number of "set" technical bits
+        s_all = count(!ismissing, (@view predictors[i][4:15])) # total number of "set" bits
+        s_fund = count(!ismissing, (@view predictors[i][4:9])) # total number of "set" fundamental bits
+        s_tech = count(!ismissing, (@view predictors[i][10:13])) # total number of "set" technical bits
         frac_bits_set += s_all
         frac_bits_fund += s_fund
         frac_bits_tech += s_tech

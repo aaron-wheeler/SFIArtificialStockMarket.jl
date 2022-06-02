@@ -30,23 +30,25 @@ Initialize market state.
 """
 function init_state!(model)
     # instantiate price and dividend
-    dividend = Vector{Float64}(undef, 0)
+    # dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
-    price = Vector{Float64}(undef, 0)
+    # price = Vector{Float64}(undef, 0)
     init_price = init_dividend / model.r    
-    model.price = push!(price, init_price)
-    model.dividend = push!(dividend, init_dividend)
+    model.price = push!(model.price, init_price)
+    # model.dividend = push!(model.dividend, init_dividend)
+    model.dividend[2] = init_dividend
     
     # Initialization period, generate historical dividend and prices
     price_div_history_t = 1
     while price_div_history_t <= model.initialization_t
-        model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+        # model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+        SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
         model.price = push!(model.price, (last(model.dividend) / model.r))
         price_div_history_t += 1
     end
 
     # generate first state bit vector sequence
-    model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
+    SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     return model
 end
@@ -98,8 +100,9 @@ function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
     # Exogenously determine dividend and post for all agents
-    model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
-    popfirst!(model.dividend)
+    # model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
+    # popfirst!(model.dividend)
+    SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
 
     # Adjust agent dividend and fixed income asset earnings and pay taxes
     for agent in scheduled_agents
@@ -116,7 +119,8 @@ function model_step!(model)
     end
 
     # Update market state vector
-    model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
+    # model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
+    SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     # Agent expectation steps
     for agent in scheduled_agents
@@ -371,18 +375,20 @@ function model_step!(model)
     end
 
     # Update values tracking set bits
-    # initialize "set" bit count
-    model.frac_bits_set = 0.0
-    model.frac_bits_fund = 0.0
-    model.frac_bits_tech = 0.0
-    for agent in scheduled_agents
-        model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits!(agent.predictors, model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech)
+    if model.track_bits == true
+        # initialize "set" bit count
+        model.frac_bits_set = 0.0
+        model.frac_bits_fund = 0.0
+        model.frac_bits_tech = 0.0
+        for agent in scheduled_agents
+            model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits(agent.predictors)
+        end
+        # average over all rules and agents
+        model.frac_bits_set = model.frac_bits_set / (model.num_predictors * 12 * model.num_agents) # 12 total bits in predictor
+        model.frac_bits_fund = model.frac_bits_fund / (model.num_predictors * 6 * model.num_agents) # 6 fundamental bits in predictor
+        model.frac_bits_tech = model.frac_bits_tech / (model.num_predictors * 4 * model.num_agents) # 4 technical bits in predictor
     end
-    # average over all rules and agents
-    model.frac_bits_set = model.frac_bits_set / (model.num_predictors * 12 * model.num_agents) # 12 total bits in predictor
-    model.frac_bits_fund = model.frac_bits_fund / (model.num_predictors * 6 * model.num_agents) # 6 fundamental bits in predictor
-    model.frac_bits_tech = model.frac_bits_tech / (model.num_predictors * 4 * model.num_agents) # 4 technical bits in predictor
-
+    
     # Update mdf collection variables (have to do this bc these are vectors) **TODO: Reconsider having these as growing vectors in first place?? Make just big enough to for state_vector?
     model.mdf_price = clearing_price
     model.mdf_dividend = last(model.dividend)
