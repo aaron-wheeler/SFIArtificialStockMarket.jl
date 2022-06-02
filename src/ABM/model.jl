@@ -380,7 +380,7 @@ function model_step!(model)
     model.frac_bits_fund = 0.0
     model.frac_bits_tech = 0.0
     for agent in scheduled_agents
-        model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits!(agent.predictors, model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech)
+        model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits(agent.predictors)
     end
     # average over all rules and agents
     model.frac_bits_set = model.frac_bits_set / (model.num_predictors * 12 * model.num_agents) # 12 total bits in predictor
