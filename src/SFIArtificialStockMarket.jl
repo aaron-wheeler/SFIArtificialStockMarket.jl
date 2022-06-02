@@ -8,7 +8,7 @@ using Random
 using StatsBase
 using ForwardDiff
 using DataFrames
-using MLStyle
+using StaticArrays
 using Statistics
 using JuMP
 using Ipopt
