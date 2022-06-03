@@ -1,6 +1,3 @@
-# include("data_struct.jl") 
-# include("SFIArtificialStockMarket.jl")
-
 ## Initialization
 
 """
@@ -9,13 +6,13 @@
 Create ABM model with given `seed`, and other `properties`.
 """
 function init_model(; seed::UInt32, properties...)
-    space = GridSpace((10,10), periodic = true, metric = :euclidean )  # TODO: Investigate this
+    space = GridSpace((10,10), periodic = true, metric = :euclidean )
     model = ABM(
         Trader, 
-        space; # This does nothing as of right now, brainstorm use (Power law wealth distribution space?)
+        space; # currenly not used in simulation
         properties = ModelProperties(; properties...), 
         scheduler = Schedulers.by_id,
-        rng = MersenneTwister(seed) # Is this used anywhere in simulation? dividend_process?
+        rng = MersenneTwister(seed)
     )
     init_state!(model)
     println("Market State Initiated")
@@ -30,24 +27,20 @@ Initialize market state.
 """
 function init_state!(model)
     # instantiate price and dividend
-    # dividend = Vector{Float64}(undef, 0)
     init_dividend = model.d̄
-    # price = Vector{Float64}(undef, 0)
     init_price = init_dividend / model.r    
     model.price = push!(model.price, init_price)
-    # model.dividend = push!(model.dividend, init_dividend)
     model.dividend[2] = init_dividend
     
-    # Initialization period, generate historical dividend and prices
+    # Initialization period, generate historical dividend and price
     price_div_history_t = 1
     while price_div_history_t <= model.initialization_t
-        # model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
         SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
         model.price = push!(model.price, (last(model.dividend) / model.r))
         price_div_history_t += 1
     end
 
-    # generate first state bit vector sequence
+    # generate first market state vector sequence
     SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     return model
@@ -55,32 +48,18 @@ end
 
 """
 Initialize and add agents.
-
-ERROR TERMS TO INCLUDE LATER**
-- For future user-input case, may need to specify that `GA_frequency` (T/k) needs to be an Int
 """
 function init_agents!(model)
-    # T = model.warm_up_t + model.recorded_t # Total sim time
-    # GA_frequency = Int(T / model.k) # num times GA is invoked across total simulation
-    # n = Int(GA_frequency / model.k_var) # scaling factor for consistent k range over time
-    # δ_dist_1 = repeat(Vector{Int}(((model.k - (model.k_var/2)) + 1) : (model.k - 1)), n) # - half of k_var
-    # δ_dist_2 = repeat([model.k, model.k], n) # middle portion of k_var
-    # δ_dist_3 = repeat(Vector{Int}((model.k + 1) : ((model.k + (model.k_var/2)) - 1)), n) # + half of k_var
-    # δ_dist = vcat(δ_dist_1, δ_dist_2, δ_dist_3)
-    for id in 1:model.num_agents # Properties included in `Trader` here are ones that don't have default value in data_struct.jl or may be user changed later
+    # Populate model with agents one-by-one
+    for id in 1:model.num_agents
         a = Trader(
             id = id,
             pos = (1, 1),
             relative_cash = model.init_cash,
-            relative_wealth = model.init_cash + last(model.price) * 1, # wealth = cash + price*holdings
-            σ_i = model.σ_pd,
-            # active_j_records = zeros(Int, model.num_predictors, 2)
+            relative_wealth = model.init_cash + last(model.price) * 1 # multiply by 1 since each agent holds one share
         )
-    
         a.predictors = SFIArtificialStockMarket.init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
-        # a.δ, a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(GA_frequency, δ_dist, model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(model.σ_pd, model.C, model.num_predictors, a.predictors)
-        # a.active_predictors, a.forecast = SFIArtificialStockMarket.match_predictors(a.id, model.num_predictors, a.predictors, model.state_vector, a.predict_acc, a.fitness_j)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
         a.active_j_records = zeros(Int, model.num_predictors, 2)
@@ -100,8 +79,6 @@ function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
 
     # Exogenously determine dividend and post for all agents
-    # model.dividend = SFIArtificialStockMarket.dividend_process(model.d̄, model.ρ, model.dividend, model.σ_ε)
-    # popfirst!(model.dividend)
     SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
 
     # Adjust agent dividend and fixed income asset earnings and pay taxes
@@ -119,7 +96,6 @@ function model_step!(model)
     end
 
     # Update market state vector
-    # model.state_vector = SFIArtificialStockMarket.update_market_vector(model.price, model.dividend, model.r)
     SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     # Agent expectation steps
@@ -130,52 +106,17 @@ function model_step!(model)
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
     expected_xi = zeros(Float64, 4, 0)
-    # relative_cash_t = Vector{Float64}(undef, 0)
-    # relative_holdings_t = Vector{Int}(undef, 0)
-
     for agent in scheduled_agents
-        # safer to do this all in one data structure and then sort by agent id in next step to ensure consistency?
         expected_xi = hcat(expected_xi, agent.forecast)
-        # relative_cash_t = push!(relative_cash_t, agent.relative_cash)
-        # relative_holdings_t = push!(relative_holdings_t, agent.relative_holdings)
-
     end
 
+    # Prepare variables needed for order execution
     dt = last(model.dividend)
-    # Identifier = convert(Vector{Int}, expected_xi[1, :])
     a = convert(Vector{Float64}, expected_xi[2, :])
     b = convert(Vector{Float64}, expected_xi[3, :])
     σ_i = convert(Vector{Float64}, expected_xi[4, :])
 
-    # check order consistency of expected_xi[1,:] and relative_cash, relative_holdings
-
-    # ## PREVIOUS MARKET CLEARING IMPLEMENTATION
-
-    # # Price formation mechanism
-    # df_demand, clearing_price = SFIArtificialStockMarket.get_demand!(model.num_agents, model.price, model.dividend, model.r, model.λ, expected_xi, relative_cash_t, relative_holdings_t,
-    #     model.trade_restriction, model.short_restriction, model.itermax, model.price_min, model.price_max)
-
-    # # Update price vector
-    # model.price = push!(model.price, clearing_price)
-
-    # # Order execution mechanism here, get_trades()
-    # df_trades = SFIArtificialStockMarket.get_trades!(df_demand, clearing_price, model.cash_restriction)
-
-    # # Update trading volume vector
-    # model.trading_volume = SFIArtificialStockMarket.update_trading_volume!(model.num_agents, df_trades)
-
-    # # Update historical volatility vector
-    # model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
-
-    # # Calculate and update individual agent financial rewards (cash and holdings)
-    # for agent in scheduled_agents
-    #     SFIArtificialStockMarket.update_rewards!(df_trades, agent)
-    #     agent.relative_wealth = agent.relative_cash + clearing_price * agent.relative_holdings
-    # end
-    # ## END OF PREVIOUS MARKET IMPLEMENTATION
-
-
-    ## NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
+    # AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
     # Initialize
     slope_total = 0.0
     bid_total = 0.0
@@ -200,11 +141,9 @@ function model_step!(model)
             else
                 trial_price *= 1 + model.eta * imbalance
             end
-
-            # break
         end
 
-        # set and enforce constraints on price variable
+        # Set and enforce constraints on price variable
         if trial_price < model.price_min || trial_price > model.price_max
             trial_price = trial_price < model.price_min ? model.price_min : model.price_max
         end
@@ -226,7 +165,7 @@ function model_step!(model)
             end
         end
 
-        # match up bids and asks
+        # Match up bids and asks (condition ? (return if true) : (return if false))
         volume = (bid_total > ask_total ? ask_total : bid_total)
         bid_frac = (bid_total > 0.0 ? volume / bid_total : 0.0)
         ask_frac = (ask_total > 0.0 ? volume / ask_total : 0.0)
@@ -257,13 +196,9 @@ function model_step!(model)
     # Update historical volatility
     model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
 
-    ## END OF NEW AUCTIONEER-MEDIATED FRACTIONAL MARKET CLEARING ALGORITHM
-
-
     # Update agent forecasting metrics
     if model.t > model.τ
         for agent in scheduled_agents
-            # SFIArtificialStockMarket.update_predict_acc!(agent.predict_acc, agent.active_predictors, agent.predictors, model.τ, model.price, model.dividend)
             SFIArtificialStockMarket.update_predict_acc!(agent, model.τ, model.price, model.dividend)
         end
     end
@@ -271,7 +206,6 @@ function model_step!(model)
     # Each individual agent checks to see if they are to be selected for GA 
     for agent in scheduled_agents
         # Check recombination status, undergo GA if true
-        # if in.(model.t, Ref(agent.δ)) == true
         if model.t > model.τ && rand() < (1 / model.k)
             # Begin GA
             for i = 1:length(agent.predict_acc)
@@ -288,7 +222,6 @@ function model_step!(model)
 
             # Make new 1-100 organized dataframe for these next steps
             df_GA = DataFrame(predict_acc = agent.predict_acc, fitness_j = agent.fitness_j, predictors = agent.predictors)
-            #allowmissing!(df_GA)
 
             # Retain rows not included in eliminated_j for new `elite` vectors
             # Isolate elite predictors, predict_acc, fitness_j and set eliminated rows to NaN (preserves type)
@@ -317,7 +250,6 @@ function model_step!(model)
                     replacement_j = push!(replacement_j, mutated_j)
                 end
             end
-            #println(replacement_j)
 
             # Merge `replacement_j` into `elite_j` using the eliminated indices from `eliminated_j`
             sort!(eliminated_j)
@@ -326,20 +258,20 @@ function model_step!(model)
                 if in.(index, Ref(eliminated_j)) == true
                     # Input replacement predictors
                     df_GA[index, :predictors] = replacement_j[j]
-                    # make new predict_acc equal to current replacement_j variance
+                    # Make new predict_acc equal to current replacement_j variance
                     df_GA[index, :predict_acc] = replacement_j[j][3]
-                    # calculate new fitness_j for each new replacement vec, same procedure as done in initialization
+                    # Calculate new fitness_j for each new replacement vec, same procedure as done in initialization
                     s = count(!ismissing, df_GA[index, :predictors][4:15])
                     f_j = -1 * (df_GA[index, :predict_acc]) - model.C * s
                     df_GA[index, :fitness_j] = f_j
-                    # update active_j_records for new replacement predictors
+                    # Update active_j_records for new replacement predictors
                     agent.active_j_records[index, 1] = 0
                     agent.active_j_records[index, 2] = model.t
                     j += 1
                 end
             end
 
-            # update default predictor forecasting params to be weighted (1/σ_j) average of all other predictor forecasting params (a, b)
+            # Update default predictor forecasting params to be weighted (1/σ_j) average of all other predictor forecasting params (a, b)
             df_GA[100, :predictors][1] = sum(df_GA[i, :predictors][1] * (1 / df_GA[i, :predictors][3])
                                              for i = 1:(model.num_predictors-1)) / sum(1 / df_GA[i, :predictors][3] for i = 1:(model.num_predictors-1)) # default a
             df_GA[100, :predictors][2] = sum(df_GA[i, :predictors][2] * (1 / df_GA[i, :predictors][3])
@@ -367,7 +299,7 @@ function model_step!(model)
                         set_bit = findfirst(!ismissing, agent.predictors[i][4:15])
                         agent.predictors[i][3+set_bit] = missing # change "set" bit position in condition statement to missing
                     end
-                    # fitness_j of predictor reset to median value
+                    # `fitness_j`` of predictor reset to median value
                     agent.fitness_j[i] = median(agent.fitness_j)
                 end
             end
@@ -376,26 +308,25 @@ function model_step!(model)
 
     # Update values tracking set bits
     if model.track_bits == true
-        # initialize "set" bit count
+        # Initialize "set" bit count
         model.frac_bits_set = 0.0
         model.frac_bits_fund = 0.0
         model.frac_bits_tech = 0.0
         for agent in scheduled_agents
             model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits(agent.predictors)
         end
-        # average over all rules and agents
+        # Average over all rules and agents
         model.frac_bits_set = model.frac_bits_set / (model.num_predictors * 12 * model.num_agents) # 12 total bits in predictor
         model.frac_bits_fund = model.frac_bits_fund / (model.num_predictors * 6 * model.num_agents) # 6 fundamental bits in predictor
         model.frac_bits_tech = model.frac_bits_tech / (model.num_predictors * 4 * model.num_agents) # 4 technical bits in predictor
     end
     
-    # Update mdf collection variables (have to do this bc these are vectors) **TODO: Reconsider having these as growing vectors in first place?? Make just big enough to for state_vector?
+    # Update mdf collection variables
     model.mdf_price = clearing_price
     model.mdf_dividend = last(model.dividend)
-    # model.mdf_trading_volume = model.trading_volume
-    # model.mdf_volatility = model.volatility
 
-    # Time tracking print messages (for debugging)
+
+    # Simulation progress tracking print messages
     if model.t % 10000 == 0
         println(model.t)
     end
