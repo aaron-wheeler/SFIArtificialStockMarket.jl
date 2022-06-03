@@ -3,11 +3,11 @@ using Pkg
 Pkg.activate(".")
 Pkg.instantiate()
 
-# # Start workers (Parallel Computing)
+# # Start workers (for parallel computing)
 # using Distributed
 # addprocs(4)
 
-# # Set up package environment on workers (Parallel Computing)
+# # Set up package environment on workers (for parallel computing)
 # @everywhere begin
 #     using Pkg
 #     Pkg.activate(".")
@@ -18,48 +18,39 @@ using DataFrames
 using CSV
 using Pipe
 
-# # Load packages on workers 
-# (Parallel Computing)
+# # Load packages on workers (for parallel computing)
 # @everywhere begin
 #     using Agents
 #     using Statistics: mean
 #     using Random
 # end
 
-# (Sequencial Computing)
+# Load packages (for serial computing)
 using Agents
 using Statistics
 using Random
 using SFIArtificialStockMarket
 
-# # Load model libraries on workers
-# (Parallel Computing)
+# # Load model libraries on workers (for parallel computing)
 # @everywhere cd("src/ABM")
+# @everywhere include("data_struct.jl")
 # @everywhere include("model.jl")
 
-# (Sequencial Computing)
+
+# Load model libraries (for serial computing)
 include("data_struct.jl") 
-# include("evolution.jl")
 include("model.jl")
 
-## Define scenarios and run model
+## Define and run model
 """
-Create model, let it run, wrangle data, dance a tarantella.
+Create model, let it run, wrangle data
 """
 function let_it_run()
-    # agent data to collect
-    adata = [:relative_cash, :relative_holdings, :relative_wealth, :chosen_j]
+    # Number of model ensembles to run and their random seeds
+    num_model_ensembles = 1
+    seeds = rand(UInt32, num_model_ensembles)
 
-    # model data to collect
-    # mdata = [:t, :price, :dividend, :trading_volume, :volatility, :technical_activity]
-    # mdata = [:t, :mdf_price, :mdf_dividend, :trading_volume, :volatility, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
-    # mdata = [:t, :frac_bits_set, :frac_bits_fund, :frac_bits_tech] # for collect(0:260000) case
-
-    # seeds = rand(UInt32, 50) # vector of random seeds
-    seeds = rand(UInt32, 1) # vector of random seeds
-
-    # Setup parameters (for complex or rational)
-    # complex regime
+    # Setup parameters
     properties = (
         num_agents = 25,
         k = 250,
@@ -68,14 +59,17 @@ function let_it_run()
         track_bits = false
     )
 
-    # model data to collect
+    # Agent data to collect
+    adata = [:relative_cash, :relative_holdings, :relative_wealth, :chosen_j]
+
+    # Model data to collect
     if properties[:track_bits] == false
         mdata = [:t, :mdf_price, :mdf_dividend, :trading_volume, :volatility]
     else
         mdata = [:t, :mdf_price, :mdf_dividend, :trading_volume, :volatility, :frac_bits_set, :frac_bits_fund, :frac_bits_tech]
     end
 
-    models = [init_model(; seed, properties...) for seed in seeds] # run entire model for each random seed?
+    models = [init_model(; seed, properties...) for seed in seeds] 
 
     # Collect data (ensemble simulation for multiple random seeded models)
     pre_SS_t = 250000 # number of time steps to warm up and reach steady state 
@@ -84,53 +78,16 @@ function let_it_run()
     model_runs = pre_SS_t + recorded_t # total numder of time steps in model
     steady_state = collect(pre_SS_t:model_runs) # time steps where data is collected and stored locally
 
-    # model_runs = 260000 # total numder of time steps in model
-    # steady_state = collect(250000:260000) # time steps where data is collected and stored locally
-
-    # model_runs = 20000 # total numder of time steps in model
-    # steady_state = collect(0:20000) # time steps where data is collected and stored locally
-
-    # model_runs = 460000 # total numder of time steps in model
-    # steady_state = collect(450000:460000) # time steps where data is collected and stored locally
-
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
         adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
 
-    # Collect data (for single model case)
-    # adf, mdf = run!(models, dummystep, model_step!, 500;
-    #     adata = adata, mdata = mdata)
-
     # Create save path
-    # savepath = mkpath("../../data/ABM")
     savepath = mkpath("../../Data/ABMs/SFI/test")
 
-    # # Aggregate agent data over replicates
-    # adf = @pipe adf |>
-    #     groupby(_, [:step, :id]) |>
-    #     combine(_,
-    #         adata[1] .=> unique .=> adata[1],
-    #         adata[3:end] .=> mean .=> adata[3:end]
-    #     )
-    # adf[!, :env] = fill(properties.env, nrow(adf))
-    # adf[!, :scenario] = fill(properties.scenario, nrow(adf))
-    # CSV.write("$(savepath)/data_$(properties.scenario).csv", adf)
+    # Save agent data
     CSV.write("$(savepath)/adf_test.csv", adf)
 
-    # # Collect aggregated data over steps
-    # aggregate_data = @pipe adf |> 
-    #     groupby(_, [:step, :env, :scenario]) |>
-    #     combine(_, 
-    #         [:time_individual, :time_shirking, :time_cooperation] .=> mean,
-    #         [:output, :reward] .=> sum
-    #     )
-    # CSV.write("$(savepath)/aggregate_$(properties.scenario).csv", aggregate_data)
-
-    # # Aggregate model data over replicates
-    # mdf = @pipe mdf |>
-    #     groupby(_, [:step]) |>
-    #     combine(_, mdata[1] .=> mean .=> mdata[1])
-    # mdf[!, :scenario] = fill(properties.scenario, nrow(mdf))
-    # CSV.write("$(savepath)/mdf_$(properties.scenario).csv", mdf)
+    # Save model data
     CSV.write("$(savepath)/mdf_test.csv", mdf)
 end
 
