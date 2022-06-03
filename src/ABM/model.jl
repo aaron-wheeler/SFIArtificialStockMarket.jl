@@ -155,7 +155,7 @@ function model_step!(model)
 
         for agent in scheduled_agents
             slope = 0.0
-            agent.demand_xi, slope = SFIArtificialStockMarket.get_demand_slope!(a[agent.id], b[agent.id], σ_i[agent.id], trial_price, dt, model.r, model.λ, agent.relative_holdings,
+            agent.demand_xi, slope = SFIArtificialStockMarket.get_demand_slope(a[agent.id], b[agent.id], σ_i[agent.id], trial_price, dt, model.r, model.λ, agent.relative_holdings,
                 model.trade_restriction, model.cash_restriction, model.short_restriction, agent.relative_cash)
             slope_total += slope
             if agent.demand_xi > 0.0
@@ -194,7 +194,7 @@ function model_step!(model)
     model.trading_volume = volume
 
     # Update historical volatility
-    model.volatility = SFIArtificialStockMarket.update_volatility!(model.price)
+    model.volatility = SFIArtificialStockMarket.update_volatility(model.price)
 
     # Update agent forecasting metrics
     if model.t > model.τ
