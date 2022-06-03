@@ -4,54 +4,32 @@ Define model parameters.
 Please use `ABM/README.md` as a reference for what each field of this struct does.
 """
 Base.@kwdef mutable struct ModelProperties
-    num_agents::Int # default value = 25
-    # N::Int = 25 # must be same value as num_agents; default value = 25
+    num_agents::Int
     λ::Float64 = 0.5
     num_predictors::Int = 100
     t::Int = 1
-    # bit1::Int = 0
-    # bit2::Int = 0
-    # bit3::Int = 0
-    # bit4::Int = 0
-    # bit5::Int = 0
-    # bit6::Int = 0
-    # bit7::Int = 0
-    # bit8::Int = 0
-    # bit9::Int = 0
-    # bit10::Int = 0
-    # bit11::Int = 1
-    # bit12::Int = 0
     state_vector::Vector{Int} = Vector{Int}(undef, 12)
     price::Vector{Float64} = []
     dividend::Vector{Float64} = Vector{Float64}(undef, 2)
     trading_volume::Float64 = 0.0
     volatility::Float64 = 0.0
-    # technical_activity::Vector{Int} = [] incorporate later?
     initialization_t::Int = 499
     generalization_t::Int = 4000
-    # warm_up_t::Int = 250000 # move to run.jl?
-    # recorded_t::Int = 10000 # move to run.jl?
-    k::Int # = 250 for complex regime
-    pGAcrossover::Float64 # = 0.1 for complex regime
-    τ::Int # = 75 for complex regime
-    # num_shares::Int = 25 # never used
+    k::Int
+    pGAcrossover::Float64
+    τ::Int
     r::Float64 = 0.1
     ρ::Float64 = 0.95
     d̄::Float64 = 10.0
-    # ε::Float64
     σ_ε::Float64 = 0.0743
     σ_pd::Float64 = 4.0
     a_min::Float64 = 0.7
     a_max::Float64 = 1.2
     b_min::Float64 = -10.0
     b_max::Float64 = 19.002
-    # δ_dist::Vector{Int} = [] # **TODO: Remove this?**
-    # k_var::Int = 40 # **TODO: Remove this?**
     C::Float64 = 0.005
-    price_min::Float64 = 0.01 # from 2008 textbook
-    price_max::Float64 = 200.0 # from 2008 textbook
-    # price_min::Float64 = 0.001 # from original source code
-    # price_max::Float64 = 99999.0 # from original source code
+    price_min::Float64 = 0.01
+    price_max::Float64 = 200.0
     init_cash::Float64 = 20000.0
     eta::Float64 = 0.0005
     min_excess::Float64 = 0.01
@@ -59,54 +37,25 @@ Base.@kwdef mutable struct ModelProperties
     trade_restriction::Float64 = 10.0
     short_restriction::Float64 = -5.0
     cash_restriction::Float64 = -2000.0
-    itermax::Int = 500
     num_elimination::Int = 20
     pcond_mut::Float64 = 0.03
     pparam_mut_long::Float64 = 0.2
     pparam_mut_short::Float64 = 0.2
     percent_mut_short::Float64 = 0.05
-    mdf_price::Float64 = 0.0 # for data collection and plotting
-    mdf_dividend::Float64 = 0.0 # for data collection and plotting
-    # mdf_trading_volume::Float64 = 0.0 # for data collection and plotting
-    # mdf_volatility::Float64 = 0.0 # for data collection and plotting
+    mdf_price::Float64 = 0.0
+    mdf_dividend::Float64 = 0.0
     track_bits::Bool
-    frac_bits_set::Float64 = 0.0 # for data collection and plotting
-    frac_bits_fund::Float64 = 0.0 # for data collection and plotting
-    frac_bits_tech::Float64 = 0.0 # for data collection and plotting
+    frac_bits_set::Float64 = 0.0
+    frac_bits_fund::Float64 = 0.0
+    frac_bits_tech::Float64 = 0.0
 end
-
-# """
-# Define parameter structure of dynamic market state.
-
-# Please use `ABM/README.md` as a reference for what each field of this struct does.
-# """
-# Base.@kwdef mutable struct State  
-#     t::Int # Make this exclusive to ModelProperties?
-#     bit1::Int
-#     bit2::Int
-#     bit3::Int
-#     bit4::Int
-#     bit5::Int
-#     bit6::Int
-#     bit7::Int
-#     bit8::Int
-#     bit9::Int
-#     bit10::Int
-#     bit11::Int
-#     bit12::Int
-#     price::Vector{Float64} = []
-#     dividend::Vector{Float64} = []
-#     trading_volume::Vector{Int} = []
-#     volatility::Vector{Float64} = []
-#     technical_activity::Vector{Int} = []
-# end
 
 """
 Define base structure of agents and their properties.
 
 Please use `ABM/README.md` as a reference for what each field of this struct does.
 """
-Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line means 
+Base.@kwdef mutable struct Trader <: AbstractAgent
     id::Int
     pos::Dims{2}
     relative_cash::Float64
@@ -115,13 +64,9 @@ Base.@kwdef mutable struct Trader <: AbstractAgent # Investigate what this line 
     predictors::Vector{Any} = []
     predict_acc::Vector{Float64} = []
     fitness_j::Vector{Float64} = []
-    chosen_j::Int = 100 # Remove this?
+    chosen_j::Int = 100 
     demand_xi::Float64 = 0.0
-    # δ::Vector{Int} = [] # Remove this?
     active_predictors::Vector{Int} = []
     forecast::Vector{Any} = []
     active_j_records::Matrix{Int} = zeros(Int, 0, 0)
-
-    # specific to predictor, remove?
-    σ_i::Float64
 end
