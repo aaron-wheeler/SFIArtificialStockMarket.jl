@@ -59,7 +59,7 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `id`: unique identifier for each agent i
   - `pos`: defines agents' position on a grid space as a Tuple{Int,Int}. Currently unused in this simulation. 
   - `relative_cash`: each agent's relative cash held at time `t`
-  - `relative_holdings`: each agent's relative number of shares held at time `t` (default = `1`)
+  - `relative_holdings`: each agent's relative number of shares held at time `t` (default = `1.0`)
   - `relative_wealth`: each agent's relative wealth (value of cash + holdings) at time `t`
   - `predictors` : The set of evolving conditional predicting vectors that are unique to each agent; agents use these to forecast price and dividend
   - `predict_acc`: the accuracy of agent i's jth predictor (most accurate is used); updated each time predictor j is active 
@@ -101,7 +101,7 @@ This model is composed of the following elements:
 
 - `init_agents!`: 
 
-  This function defines the creation of agents at step 0. At this stage of the simulations, each agent holds (default = `1`) share and devotes the same level of confidence to each predictor.
+  This function defines the creation of agents at step 0. At this stage of the simulation, a key assumption is that each agent holds `1.0` share and devotes the same level of confidence to each predictor.
 
   Agents create and instantiate all agent variables used in the step function.  
 
