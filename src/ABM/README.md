@@ -34,8 +34,8 @@ Multiple data structures have been defined in `ABM/data_struct.jl` to organise t
   - `b_min` : minimum value of forecasting parameter b (default = `-10.0`)
   - `b_max` : maximum value of forecasting parameter b (default = `19.002`)
   - `C`: cost levied for fitness measure's specificity (default = `0.005`)
-  - `price_min` : minimum price for risky asset (default = `0.01`) # from 2008 textbook
-  - `price_max` : maximum price for risky asset (default = `200.0`) # from 2008 textbook
+  - `price_min` : minimum price for risky asset (default = `0.01`) (from 2007 textbook)
+  - `price_max` : maximum price for risky asset (default = `200.0`) (from 2007 textbook)
   - `init_cash` : initial cash balance of each agent (default = `20000.0`)
   - `eta` : parameter used to help adjust price to balance supply & demand (default = `0.0005`)
   - `min_excess` : excess demand must be smaller than this to stop price adjustment process (default = `0.01`)
