@@ -1,9 +1,7 @@
-# comment workaround before module statement so that VS Code doesn't bug out
 module SFIArtificialStockMarket
 
 using Agents
 using Distributions
-#using Pipe
 using Random
 using StatsBase
 using ForwardDiff
@@ -17,10 +15,10 @@ using Roots
 ## Update Market State 
 
 """
-    `dividend_process() → dividend`
+Update dividend vector
 
-Autoregressive dividend process is appended to vector and made public to all agents
-Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε
+The dividend vector is mutated via an autoregressive dividend process and made public to all agents.
+Gaussian noise term `ε` is independent & identically distributed and has zero mean and variance σ_ε.
 """
 function dividend_process!(dividend, d̄, ρ, σ_ε)
     ε = rand(Normal(0.0,σ_ε))
@@ -28,19 +26,29 @@ function dividend_process!(dividend, d̄, ρ, σ_ε)
     dividend[1] = dividend[2]
     dividend[2] = dt
 end
-# function dividend_process(d̄, ρ, dividend, σ_ε)
-#     ε = rand(Normal(0.0, σ_ε)) # way to include random seed? Move this to model.jl?
-#     dt = d̄ + ρ * (last(dividend) - d̄) + ε
-#     dividend = push!(dividend, dt)
-#     return dividend
-# end
 
 """
-    `update_market_vector() → bit 1-12`
+Update the market state vector
 
-Update global market state bit vector, assign "1" or "0" values depending on the presence of bit signals
-Signal present -> "1"
-Signal absent -> "0"
+The market state vector is mutated and made public to all agents. 
+
+Assign "1" or "0" values depending on the presence of bit signals
+- Signal present -> "1"
+- Signal absent -> "0"
+
+Each index (or "bit") of the market state vector indicates a specific state feature:
+- `bit1`: fundamental bit; Price * interest/dividend > 0.25 
+- `bit2`: fundamental bit; Price * interest/dividend > 0.50 
+- `bit3`: fundamental bit; Price * interest/dividend > 0.75 
+- `bit4`: fundamental bit; Price * interest/dividend > 0.875
+- `bit5`: fundamental bit; Price * interest/dividend > 1.00 
+- `bit6`: fundamental bit; Price * interest/dividend > 1.125
+- `bit7` : technical bit; Price > 5-period moving average of past prices (MA)
+- `bit8` : technical bit; Price > 10-period MA
+- `bit9` : technical bit; Price > 100-period MA
+- `bit10` : technical bit; Price > 500-period MA
+- `bit11` : experimental control; always on: 1
+- `bit12` : experimental control; always off: 0
 """
 function update_market_vector!(state_vector, price, dividend, r)
     # Fundamental bits
@@ -111,79 +119,6 @@ function update_market_vector!(state_vector, price, dividend, r)
     state_vector[12] = 0
 end
 
-# function update_market_vector(price, dividend, r)
-#     # Fundamental bits
-#     if last(price) * r / last(dividend) > 0.25
-#         bit1 = 1
-#     else
-#         bit1 = 0
-#     end
-
-#     if last(price) * r / last(dividend) > 0.5
-#         bit2 = 1
-#     else
-#         bit2 = 0
-#     end
-
-#     if last(price) * r / last(dividend) > 0.75
-#         bit3 = 1
-#     else
-#         bit3 = 0
-#     end
-
-#     if last(price) * r / last(dividend) > 0.875
-#         bit4 = 1
-#     else
-#         bit4 = 0
-#     end
-
-#     if last(price) * r / last(dividend) > 1.0
-#         bit5 = 1
-#     else
-#         bit5 = 0
-#     end
-
-#     if last(price) * r / last(dividend) > 1.125
-#         bit6 = 1
-#     else
-#         bit6 = 0
-#     end
-
-#     # Technical bits, the `period` in MA formula is set to 1 time step
-#     if last(price) > mean(price[(end-6):end])
-#         bit7 = 1
-#     else
-#         bit7 = 0
-#     end
-
-#     if last(price) > mean(price[(end-9):end])
-#         bit8 = 1
-#     else
-#         bit8 = 0
-#     end
-
-#     if last(price) > mean(price[(end-99):end])
-#         bit9 = 1
-#     else
-#         bit9 = 0
-#     end
-
-#     if last(price) > mean(price[(end-499):end])
-#         bit10 = 1
-#     else
-#         bit10 = 0
-#     end
-
-#     # Default bits, always on/off
-#     bit11 = 1
-
-#     bit12 = 0
-
-#     # Construct vector
-#     state_vector = [bit1, bit2, bit3, bit4, bit5, bit6, bit7, bit8, bit9, bit10, bit11, bit12]
-
-#     return state_vector
-# end
 
 ## Initialization (done for each agent individually)
 
@@ -223,33 +158,6 @@ function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max)
     return predictors
 end
 
-
-# function init_predictors(num_predictors, σ_pd, a_min, a_max, b_min, b_max) # Add an identifier? 
-#     predictors = Vector{Any}(undef, 0)
-#     for i = 1:(num_predictors-1) # minus one so that we can add default predictor
-#         heterogeneity = Vector{Any}(undef, 3)
-#         heterogeneity[1] = rand(Uniform(a_min, a_max)) # a
-#         heterogeneity[2] = rand(Uniform(b_min, b_max)) # b 
-#         heterogeneity[3] = σ_pd # initial σ_i = σ_pd
-#         bit_vec = Vector{Any}(undef, 12)
-#         Distributions.sample!([missing, 1, 0], Weights([0.9, 0.05, 0.05]), bit_vec) # TODO: Make weights not hardcoded
-#         bit_vec = vcat(heterogeneity, bit_vec)
-#         predictors = push!(predictors, bit_vec)
-#     end
-#     # default predictor
-#     default_heterogeneity = Vector{Any}(undef, 3)
-#     default_heterogeneity[1] = sum(predictors[i][1] * (1 / predictors[i][3])
-#                                    for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default a
-#     default_heterogeneity[2] = sum(predictors[i][2] * (1 / predictors[i][3])
-#                                    for i = 1:(num_predictors-1)) / sum(1 / predictors[i][3] for i = 1:(num_predictors-1)) # default b 
-#     default_heterogeneity[3] = σ_pd # initial default σ_i = σ_pd
-#     default_bit_vec = Vector{Any}(missing, 12)
-#     default_bit_vec = vcat(default_heterogeneity, default_bit_vec)
-#     predictors = push!(predictors, default_bit_vec)
-#     return predictors # append indentifiers for each predictor?
-# end
-
-
 """
     `init_learning() → δ, predict_acc, fitness_j`
 
@@ -257,10 +165,6 @@ Constructs and initializes each agent's `predict_acc`, 'fitness_j`, and `δ` cou
 - `δ` returned as vector, needed for asynch recombination  
 - `predict_acc` returned as vector, associated to each predictor for agent `id`
 - `fitness_j` returned as vector, associated to each `predict_acc` for agent `id`
-
-# FOR ERROR MESSAGES/CONSISTENCY CHECKS**
-# println(sum(δ)) # == T
-# println(mean(δ)) # == k
 """
 function init_learning(σ_pd, C, num_predictors, predictors)
     predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period
@@ -272,22 +176,6 @@ function init_learning(σ_pd, C, num_predictors, predictors)
 
     return predict_acc, fitness_j
 end
-
-# function init_learning(GA_frequency, δ_dist, σ_pd, C, num_predictors, predictors)  # Add an identifier for agent?
-#     δ = Vector{Int}(undef, GA_frequency)
-#     Distributions.sample!(δ_dist, δ; replace = false, ordered = false)
-#     δ = cumsum(δ)
-
-#     predict_acc = fill(σ_pd, num_predictors) # (σ_i), initialized as σ_pd(4.0) in first period, set as σ_pd to avoid loop
-#     fitness_j = Vector{Float64}(undef, 0)
-#     for i = 1:num_predictors
-#         s = count(!ismissing, predictors[i][4:15]) # specificity, number of bits that are "set" (not missing)
-#         f_j = -1 * (predict_acc[i]) - C * s
-#         fitness_j = push!(fitness_j, f_j)
-#     end
-
-#     return δ, predict_acc, fitness_j #Append identifying number for predicts and fitnesses?
-# end
 
 
 ## Order Execution Mechanism 
@@ -302,9 +190,6 @@ end
     - tiebreaker 2 -> default predictor (j=100)
 - From this predictor, return vector composed of a, b, σ_i, and agent ID for `forecast`
 - `forecast` vector needed for later aggregation and sending through demand function
-
-**Add `active_predictors` and `forecast` to agent struct? Or init to zero/replace @each time step?
-**Need to know index of predictor sent to demand (chosen_j) for any reason? Not returned here, just its a, b, etc.
 """
 function match_predictors(id, num_predictors, predictors, state_vector, predict_acc, fitness_j, σ_pd)
     # Initialize vector to store indices of all active predictors
@@ -369,8 +254,7 @@ function match_predictors(id, num_predictors, predictors, state_vector, predict_
 
     return active_predictors, forecast, chosen_j
 end
-
-# nested function to match predictor and state vector bits (only used here)
+# nested function to match predictor and state vector bits--only used in match_predictors()
 function match_predict(bit_j, state_vector)
     predictor_j_match = 0
     for signal = 1:12
@@ -384,275 +268,15 @@ function match_predict(bit_j, state_vector)
     return predictor_j_match
 end
 
-
 """
-Balance market orders and calculate agent demand. 
+    `get_demand_slope() → demand, slope`
 
-At market equilibrium, the specialist obtains the clearing price for the risky asset and rations market orders by the 
-explicit trading constraints `trade_restriction` & `short_restriction`
-Rationing procedure:
-    If N - round_error > 0 (i.e. positive)
-        Negative difference --> Add extra share(s) to be bought (+1)
-    End
+Calculate an individual agent's demand and slope and enforce trading, cash balance, and holdings constraints.
 
-    If N - round_error < 0 (i.e. negative)
-        Positive difference --> Add extra share(s) to be sold (-1)
-    End
-
-    - For every missing share: 
-    - Add extra shares by rank order highest ration_imbalance values
-    - Handle ties randomly to avoid bias. Sort(rev order when -1) --> Random shuffle
-
-    Question: Is it better to ration one side (i.e. only sell more) or split rationing (i.e. sell more and buy less)
-    Answer (Orig model): Ration one side
-    Answer (This model): If ration diff is greater then traders on ex. supply side, then traders on demand side will buy less 
-    to avoid messing with any 0.0 rounding diff stemming from constraint cutoffs
-
-ERROR TERMS TO INCLUDE LATER**
-- Convergence not reached for newton's method under itermax
-- demand_xi not being equivalent to 25 at end of rationing procedure
+- An agent's individual demand is their target number of holdings based on a risk aversion computation.
+- An agent's slope is the derivative of their demand computation w.r.t price
 """
-function get_demand!(num_agents, price, dividend, r, λ, expected_xi, relative_cash, relative_holdings,
-    trade_restriction, short_restriction, itermax, price_min, price_max)
-    N = num_agents # number of shares is equivalent to number of agents in model 
-    dt = last(dividend)
-    Identifier = convert(Vector{Int}, expected_xi[1, :])
-    a = convert(Vector{Float64}, expected_xi[2, :])
-    b = convert(Vector{Float64}, expected_xi[3, :])
-    σ_i = convert(Vector{Float64}, expected_xi[4, :])
-
-    # # Solving for clearing price via newton's method
-    # f(pt) = sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N
-    # pt = last(price) # initial condition, last observed price 
-    # pt_iter = [] # More efficent way to do this, with no vector?
-    # for i = 1:itermax
-    #     if i == 1
-    #         pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
-    #         push!(pt_iter, pt)
-    #     else
-    #         pt = pt - (f(pt) / ForwardDiff.derivative(f, pt))
-    #         push!(pt_iter, pt)
-    #         # check convergence criteria, defaulted to 7 digits
-    #         if isequal(round(pt_iter[end-1], digits = 7), round(pt_iter[end], digits = 7))
-    #             break
-    #         end
-    #     end
-    # end
-    # cprice = last(pt_iter)
-
-    # # Solving for clearing price via NLP optimization solver (Ipopt)
-    # price_specialist = Model(Ipopt.Optimizer)
-    # set_optimizer_attribute(price_specialist, "print_level", 0) # suppress solver output message
-    # set_optimizer_attribute(price_specialist, "max_iter", itermax) # max number of iterations
-    # set_optimizer_attribute(price_specialist, "tol", 1e-4) # convergence criteria
-    # set_time_limit_sec(price_specialist, 60.0) # max allowable time for model solving
-    # # Set constraints on price variable and solve trivial scalar obj fn (zero degrees of freedom)
-    # @variable(price_specialist, price_min <= pt <= price_max, start = last(price)) # initial condition -> last observed price
-    # @constraint(price_specialist, sum(((a[i] * (pt + dt) + b[i] - pt * (1 + r)) / (λ * σ_i[i])) for i = 1:num_agents) - N >= 0.0)
-    # @objective(price_specialist, Min, 1.0)
-    # # Price specialist obtains clearing price and stores value
-    # JuMP.optimize!(price_specialist)
-    # cprice = value(pt)
-
-    # Solving for clearing price via derivative-free root-finding algorithm
-    f(pt) = sum(((a[i]*(pt + dt) + b[i] - pt*(1 + r)) / (λ*σ_i[i])) for i in 1:num_agents) - N
-    pt = last(price) # initial condition, last observed price 
-    cprice = find_zero(f, pt)
-    # set and enforce constraints on price variable
-    if cprice < price_min || cprice > price_max
-        cprice = cprice < price_min ? price_min : price_max
-    end
-
-    # calculate individual agent demand
-    test_demand_N_convergence = Vector{Float64}(undef, 0)
-    for i = 1:num_agents
-        demand = ((a[i] * (cprice + dt) + b[i] - cprice * (1 + r)) / (λ * σ_i[i]))
-        push!(test_demand_N_convergence, demand)
-    end
-
-    # Rounding witchcraft
-    for i = 1:length(test_demand_N_convergence)
-        test_demand_N_convergence[i] = round(test_demand_N_convergence[i], digits = 1)
-    end
-
-    # Way to do this without making this vector every time?
-    xi_excess = Vector{Float64}(undef, 0)
-    for i = 1:N
-        if test_demand_N_convergence[i, 1] > trade_restriction
-            push!(xi_excess, (test_demand_N_convergence[i, 1] - (test_demand_N_convergence[i, 1] - trade_restriction)))
-        elseif test_demand_N_convergence[i, 1] < short_restriction
-            push!(xi_excess, (test_demand_N_convergence[i, 1] - (test_demand_N_convergence[i, 1] - short_restriction)))
-        else
-            push!(xi_excess, test_demand_N_convergence[i, 1])
-        end
-    end
-    test_demand_N_convergence = xi_excess
-
-    # To determine rounding difference and adjust share rationing
-    test_demand_round_diff = Vector{Float64}(undef, 0)
-    append!(test_demand_round_diff, test_demand_N_convergence)
-
-    for i = 1:length(test_demand_N_convergence)
-        test_demand_round_diff[i] = trunc(Int64, test_demand_round_diff[i])
-    end
-    round_error = sum(test_demand_round_diff)
-    round_error = convert(Int, round_error)
-
-    demand_ration = hcat(test_demand_N_convergence, test_demand_round_diff)
-
-    # round difference
-    ration_imbalance = N - round_error
-    demand_ration_imbalance = vec(diff(demand_ration, dims = 2))
-    demand_ration_imbalance .= round.(demand_ration_imbalance, digits = 1)
-    demand_ration = hcat(demand_ration, demand_ration_imbalance)
-
-    df = DataFrame(AgentID = Identifier, Current_holding = relative_holdings, Current_cash = relative_cash,
-        init_xi = demand_ration[:, 1], round_xi = demand_ration[:, 2], xi_diff = demand_ration[:, 3])
-
-    if ration_imbalance > 0
-        # shuffle and sorts agents by xi_diff, largest negative value to largest positive value
-        df = df[shuffle(1:nrow(df)), :]
-        sort!(df, :xi_diff)
-    elseif ration_imbalance < 0
-        # shuffle and sorts agents by xi_diff, largest positive value to largest negative value
-        df = df[shuffle(1:nrow(df)), :]
-        sort!(df, order(:xi_diff), rev = true)
-    end
-
-    # number of shares the agents want to posess at time t
-    df[!, :demand_xi] = df[:, :round_xi]
-
-    # Rationing supply side, more shares sold (-) or less shares bought (if needed, -)
-    i = 1
-    overbought_shares = abs(ration_imbalance)
-    while overbought_shares > 0
-        if df[i, :xi_diff] < 0
-            break
-        elseif df[i, :demand_xi] <= short_restriction
-            i += 1
-            continue
-        elseif df[i, :xi_diff] > 0
-            df[i, :demand_xi] -= 1.0
-            i += 1
-            overbought_shares -= 1
-        else
-            df = df[shuffle(1:nrow(df)), :]
-            sort!(df, :xi_diff)
-            for j = 1:Int((abs(ration_imbalance) - i + 1))
-                if overbought_shares == 0
-                    break
-                elseif j > 25
-                    continue
-                elseif df[j, :demand_xi] <= short_restriction
-                    continue
-                else
-                    df[j, :demand_xi] -= 1.0
-                    overbought_shares -= 1
-                end
-            end
-            df = df[shuffle(1:nrow(df)), :]
-            sort!(df, order(:xi_diff), rev = true)
-            i = 1
-        end
-    end
-
-    # Rationing demand side, more shares bought (+) or less shares sold (if needed, +)
-    oversold_shares = ration_imbalance
-    while oversold_shares > 0
-        if df[i, :xi_diff] > 0
-            break
-        elseif df[i, :demand_xi] >= trade_restriction
-            i += 1
-            continue
-        elseif df[i, :xi_diff] < 0
-            df[i, :demand_xi] += 1.0
-            i += 1
-            oversold_shares -= 1
-        else
-            df = df[shuffle(1:nrow(df)), :]
-            sort!(df, order(:xi_diff), rev = true)
-            for j = 1:Int((ration_imbalance - i + 1))
-                if oversold_shares == 0
-                    break
-                elseif j > 25
-                    continue
-                elseif df[j, :demand_xi] >= trade_restriction
-                    continue
-                else
-                    df[j, :demand_xi] += 1.0
-                    oversold_shares -= 1
-                end
-            end
-            df = df[shuffle(1:nrow(df)), :]
-            sort!(df, :xi_diff)
-            i = 1
-        end
-    end
-    df[!, :demand_xi] = convert.(Int, df[:, :demand_xi])
-    ration_imbalance = N - sum(df[:, :demand_xi])
-    cprice = round(cprice; digits = 2) # any issues with doing this?
-    return df, cprice
-end
-
-
-"""
-Collect new agent share amount, cash and calculate shares traded, agent profit at time t 
-
-Enforce cash constraint `X` and return df with adjusted agent metrics
-If the budget constraint is violated:
-    -The agent(s) trying to enter a restricted cash position will reduce share demand and receive cash back
-    -The leftover share(s) will go to the agent(s) with the largest short position and nonnegative cash balance
-    -Process is repeated until all agents possess allowable cash balance
-    -This process ensures that the balance of global cash, shares, etc. is conserved
-
-ERROR TERMS TO INCLUDE LATER**
-- Conservation tests for total cash, profit, demand, and shares traded.
-- Check again for passing of trade constraints in case there is adjustment
-- Additional final check to ensure all nonnegative cash values
-"""
-function get_trades!(df, cprice, cash_restriction)
-    # The :shares_traded column needed for trading volume vector
-    df[!, :shares_traded] = [(df[i, :demand_xi] - df[i, :Current_holding]) for i = 1:nrow(df)]
-    df[!, :shares_traded] = convert.(Float64, df[:, :shares_traded])
-    # The :profit column is specific to time t, different from net profit 
-    df[!, :profit_t] = [(df[i, :shares_traded] * cprice * -1) for i = 1:nrow(df)]
-    df[:, :Current_cash] = [(df[i, :Current_cash] + df[i, :profit_t]) for i = 1:nrow(df)]
-
-    # Enforcing agent cash constraint
-    for i = 1:nrow(df)
-        if df[i, :Current_cash] < cash_restriction
-            while df[i, :Current_cash] < cash_restriction
-                # subtract share (sell one)
-                df[i, :Current_cash] += cprice
-                df[i, :demand_xi] -= 1
-                df[i, :shares_traded] -= 1.0
-                df[i, :profit_t] += cprice
-                # add share (buy one) elsewhere
-                for j = 1:nrow(df)
-                    if getindex(df[j, :demand_xi]) == minimum(df[:, :demand_xi]) && getindex(df[j, :Current_cash]) > 0.0
-                        df[j, :Current_cash] -= cprice
-                        df[j, :demand_xi] += 1
-                        df[j, :shares_traded] += 1.0
-                        df[j, :profit_t] -= cprice
-                        break
-                    end
-                end
-            end
-        end
-    end
-
-    # Return adjusted agent metrics
-    select!(df, :AgentID, :Current_cash, :demand_xi, :shares_traded, :profit_t)
-    sort!(df)
-    return df
-end
-
-
-"""
-Will update this later
-
-"""
-function get_demand_slope!(a, b, σ_i, trial_price, dt, r, λ, relative_holdings, trade_restriction, cash_restriction, short_restriction, relative_cash)
+function get_demand_slope(a, b, σ_i, trial_price, dt, r, λ, relative_holdings, trade_restriction, cash_restriction, short_restriction, relative_cash)
     forecast = a * (trial_price + dt) + b
 
     if forecast >= 0.0
@@ -696,40 +320,25 @@ end
 
 
 ## Market State Updating
-"""
-Update trading volume vector
-
-Trading volume measured as the number of shares that have changed hands during time t
-
-- How Can Trading Volume Exceed Shares Outstanding?
-https://www.investopedia.com/ask/answers/041015/why-trading-volume-important-investors.asp
-"""
-function update_trading_volume!(num_agents, df_trades)
-    volume_t = 0
-    for i = 1:num_agents
-        if df_trades[i, :shares_traded] > 0
-            volume_t += getindex(df_trades[i, :shares_traded])
-        end
-    end
-    return volume_t
-end
 
 """
 Update historical volatility vector
 
 30-day historical volatility used (standard deviation of the daily gain or loss from each of the past 30 time steps).
 """
-function update_volatility!(price)
+function update_volatility(price)
     hist_p30 = price[(end-29):(end)]
     sd_p30 = sqrt((sum((hist_p30 .- mean(hist_p30)) .^ 2)) / 30)
     return sd_p30
 end
 
-
 """
-Update value tracking the fraction of "set" (i.e., non-missing) bits present in model
+    `update_frac_bits() → frac_bits_set, frac_bits_fund, frac_bits_tech`
 
-Tracking 3 fractions here, number of "set" bits over: all 12 bits(including the dummy ones), 6 fundamental bits, and the 4 technical bits.
+Update three fractions of "set" (i.e., non-missing) bits being tracked in the simulation:
+- all 12 bits(including the dummy ones),
+- 6 fundamental bits,
+- and the 4 technical bits.
 These values will then be averaged over all agents and all predictors (done in model.jl). 
 """
 function update_frac_bits(predictors)
@@ -755,7 +364,7 @@ Update individual agent financial metrics
 
 From order execution output, update `relative_cash` & `relative_holdings`
 """
-function update_rewards!(df_trades, agent) # input seperate agent elements as arguments instead of entire agent struct?
+function update_rewards!(df_trades, agent)
     for i = 1:nrow(df_trades)
         if df_trades[i, :AgentID] == agent.id
             agent.relative_holdings = df_trades[i, :demand_xi]
@@ -764,45 +373,33 @@ function update_rewards!(df_trades, agent) # input seperate agent elements as ar
     end
 end
 
-
 """
-Update accuracy of each active predictor. 
-"""
-# function update_predict_acc!(predict_acc, active_predictors, predictors, τ, price, dividend)
-#     for i = 1:length(predict_acc)
-#         if i .∈ Ref(active_predictors)
-#             a_j = predictors[i][1]
-#             b_j = predictors[i][2]
-#             predict_acc[i] = (1 - (1 / τ)) * predict_acc[i] +
-#                              (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
-#             # Enforce max value of predict_acc to be 500.0 (necessary to validate C=0.005)
-#             if predict_acc[i] > 500.0
-#                 predict_acc[i] = 500.0
-#             end
-#         end
-#     end
-# end
+Update accuracy of each active predictor.
 
+The predictor square error/deviation and `predict_acc` value itself are constrained to maximum values.
+The maximum values were obtained from X...
+"""
 function update_predict_acc!(agent, τ, price, dividend)
     for i = 1:length(agent.predict_acc)
         if i .∈ Ref(agent.active_predictors)
             a_j = agent.predictors[i][1]
             b_j = agent.predictors[i][2]
-            # agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] +
-            #                        (1 / τ) * (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
             deviation = (((price[end] + dividend[end]) - (a_j * (price[end-1] + dividend[end-1]) + b_j))^2)
+            # Enforce max value of predictor error/deviation to be 500.0
+            # TODO: Make this constraint non-hardcoded
             if deviation > 500.0
                 deviation = 500.0
             end
             agent.predict_acc[i] = (1 - (1 / τ)) * agent.predict_acc[i] + (1 / τ) * deviation
+
             # Enforce max value of predict_acc to be 100.0 (necessary to validate C=0.005)
+            # TODO: Make this constraint non-hardcoded
             if agent.predict_acc[i] > 100.0
                 agent.predict_acc[i] = 100.0
             end
         end
     end
 end
-
 
 """
 Update matrix that contains information about each predictors historical use.
@@ -822,8 +419,11 @@ end
 
 
 ## Genetic Algorithm Invocation (done for each agent individually)
+
 """
-Recombination via GA_crossover(), occurs with probability `pGAcrossover`
+    `GA_crossover() → crossed_j`
+
+Recombination via GA_crossover(), occurs with probability `pGAcrossover`.
 
 Crossover procedure:
 - Offspring constructed from two unique parents
@@ -918,7 +518,7 @@ function GA_crossover(elite_j, df_GA, active_j_records)
     param_cross(offspring_params, parent_1_params, parent_2_params, parent_1_var, parent_2_var)
 
     # offspring forecast variance
-    offspring_var = Any[] # does this need to be vector? just set equal to value in if statement?
+    offspring_var = Any[]
 
     # median var of all elite if never been active before, average of parents otherwise
     if active_j_records[parent_1, 1] == 0 && active_j_records[parent_2, 1] == 0
@@ -935,8 +535,9 @@ function GA_crossover(elite_j, df_GA, active_j_records)
     return crossed_j
 end
 
-
 """
+    `GA_mutation() → mutated_j`
+
 Recombination via GA_mutation(), occurs with probability (1 - `pGAcrossover`)
 
 Mutation procedure:
@@ -1056,7 +657,7 @@ function GA_mutation(elite_j, df_GA, pcond_mut, a_min, a_max, b_min, b_max, ppar
     param_mutat(offspring_params, parent_1_params)
 
     # offspring forecast variance
-    offspring_var = Any[] # does this need to be vector? just set equal to value in if statement?
+    offspring_var = Any[]
 
     # median var of all elite
     elite_var = df_GA[:, :predict_acc]
