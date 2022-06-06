@@ -16,7 +16,6 @@ Pkg.instantiate()
 # Load packages on master process
 using DataFrames
 using CSV
-using Pipe
 
 # # Load packages on workers (for parallel computing)
 # @everywhere begin

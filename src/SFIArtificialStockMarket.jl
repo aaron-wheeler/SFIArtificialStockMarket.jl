@@ -8,9 +8,6 @@ using ForwardDiff
 using DataFrames
 using StaticArrays
 using Statistics
-using JuMP
-using Ipopt
-using Roots
 
 ## Update Market State 
 
