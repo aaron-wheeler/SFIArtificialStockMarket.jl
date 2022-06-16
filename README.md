@@ -1,4 +1,7 @@
 # SFIArtificialStockMarket
+[![Runtests](https://github.com/aaron-wheeler/SFIArtificialStockMarket.jl/actions/workflows/Runtests.yml/badge.svg)](https://github.com/aaron-wheeler/SFIArtificialStockMarket.jl/actions/workflows/Runtests.yml)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://aaron-wheeler.github.io/SFIArtificialStockMarket.jl/dev/)
+
 `SFIArtificialStockMarket.jl` is a [Julia package](https://docs.julialang.org/en/v1/stdlib/Pkg/) that implements the Sante Fe Institute Artificial Stock Market by Arthur et al.:
 
 [Arthur, W. Brian, John H. Holland, Blake LeBaron, Richard G. Palmer, and Paul Tayler. "Asset pricing under endogenous expectations in an artificial stock market." Available at SSRN 2252 (1996).](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2252)
