@@ -1,7 +1,7 @@
 # Install and precompile packages
-using Pkg
-Pkg.activate(".")
-Pkg.instantiate()
+# using Pkg
+# Pkg.activate(".")
+# Pkg.instantiate()
 
 # # Start workers (for parallel computing)
 # using Distributed
@@ -28,7 +28,6 @@ using CSV
 using Agents
 using Statistics
 using Random
-using SFIArtificialStockMarket
 
 # # Load model libraries on workers (for parallel computing)
 # @everywhere cd("src/ABM")
@@ -38,20 +37,21 @@ using SFIArtificialStockMarket
 
 # Load model libraries (for serial computing)
 include("data_struct.jl") 
-include("model.jl")
+include("SFI_model.jl")
 
 ## Define and run model
 """
-Create model, let it run, wrangle data
+Create model, let it run, and collect data
 """
-function let_it_run()
+function SFI_run(N_agents, warm_up_t, SS_t; save_to_disk=false)
     # Number of model ensembles to run and their random seeds
     num_model_ensembles = 1
     seeds = rand(UInt32, num_model_ensembles)
 
     # Setup parameters
     properties = (
-        num_agents = 25,
+        num_agents = N_agents,
+        warm_up_t = warm_up_t,
         k = 250,
         pGAcrossover = 0.1,
         τ = 75,
@@ -71,8 +71,8 @@ function let_it_run()
     models = [init_model(; seed, properties...) for seed in seeds] 
 
     # Collect data (ensemble simulation for multiple random seeded models)
-    pre_SS_t = 250000 # number of time steps to warm up and reach steady state 
-    recorded_t = 10000 # time steps recorded once steady state is reached
+    pre_SS_t = warm_up_t # number of time steps to warm up and reach steady state 
+    recorded_t = SS_t # time steps recorded once steady state is reached
 
     model_runs = pre_SS_t + recorded_t # total numder of time steps in model
     steady_state = collect(pre_SS_t:model_runs) # time steps where data is collected and stored locally
@@ -80,16 +80,15 @@ function let_it_run()
     adf, mdf = ensemblerun!(models, dummystep, model_step!, model_runs;
         adata = adata, mdata = mdata, when = steady_state, when_model = steady_state, parallel = false)
 
-    # Create save path
-    savepath = mkpath("../../Data/ABMs/SFI/test")
+    if save_to_disk == true
+        # Create save path
+        savepath = mkpath("../../Data/ABMs/SFI")
+        # Save agent data
+        CSV.write("$(savepath)/adf.csv", adf)
+        # Save model data
+        CSV.write("$(savepath)/mdf.csv", mdf) 
+    end
+    println("Simulation Complete")
 
-    # Save agent data
-    CSV.write("$(savepath)/adf_test.csv", adf)
-
-    # Save model data
-    CSV.write("$(savepath)/mdf_test.csv", mdf)
+    return adf, mdf
 end
-
-Random.seed!(44801)
-@time let_it_run()
-println("Simulation Complete")

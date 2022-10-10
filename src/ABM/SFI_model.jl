@@ -1,3 +1,5 @@
+include("SFI_utilities.jl")
+
 ## Initialization
 
 """
@@ -18,8 +20,8 @@ function init_model(; seed::UInt32, properties...)
     println("Market State Initiated")
     init_agents!(model)
     println("Agents Initiated")
-    return model
 
+    return model
 end
 
 """
@@ -31,17 +33,15 @@ function init_state!(model)
     init_price = init_dividend / model.r    
     model.price = push!(model.price, init_price)
     model.dividend[2] = init_dividend
-    
     # Initialization period, generate historical dividend and price
     price_div_history_t = 1
     while price_div_history_t <= model.initialization_t
-        SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
+        dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
         model.price = push!(model.price, (last(model.dividend) / model.r))
         price_div_history_t += 1
     end
-
     # generate first market state vector sequence
-    SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
+    update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     return model
 end
@@ -58,12 +58,11 @@ function init_agents!(model)
             relative_cash = model.init_cash,
             relative_wealth = model.init_cash + last(model.price) * 1 # multiply by 1 since each agent holds one share
         )
-        a.predictors = SFIArtificialStockMarket.init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
-        a.predict_acc, a.fitness_j = SFIArtificialStockMarket.init_learning(model.σ_pd, model.C, model.num_predictors, a.predictors)
+        a.predictors = init_predictors(model.num_predictors, model.σ_pd, model.a_min, model.a_max, model.b_min, model.b_max)
+        a.predict_acc, a.fitness_j = init_learning(model.σ_pd, model.C, model.num_predictors, a.predictors)
         a.active_predictors = Vector{Int}(undef, 0)
         a.forecast = Vector{Any}(undef, 0)
         a.active_j_records = zeros(Int, model.num_predictors, 2)
-    
         add_agent_single!(a, model)
     end
 
@@ -77,31 +76,27 @@ Define what happens in the model.
 """
 function model_step!(model)
     scheduled_agents = (model[id] for id in model.scheduler(model))
-
     # Exogenously determine dividend and post for all agents
-    SFIArtificialStockMarket.dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
-
+    dividend_process!(model.dividend, model.d̄, model.ρ, model.σ_ε)
     # Adjust agent dividend and fixed income asset earnings and pay taxes
     for agent in scheduled_agents
         # Update cash
         agent.relative_cash += model.r * agent.relative_cash + agent.relative_holdings * last(model.dividend) # risk-free asset earnings + risky asset earnings
         agent.relative_cash -= agent.relative_wealth * model.r # pay taxes on previous total wealth
-
         if agent.relative_cash < model.cash_restriction
             agent.relative_cash = model.cash_restriction
         end
-
         # Update wealth
         agent.relative_wealth = agent.relative_cash + last(model.price) * agent.relative_holdings
     end
 
     # Update market state vector
-    SFIArtificialStockMarket.update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
+    update_market_vector!(model.state_vector, model.price, model.dividend, model.r)
 
     # Agent expectation steps
     for agent in scheduled_agents
-        agent.active_predictors, agent.forecast, agent.chosen_j = SFIArtificialStockMarket.match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j, model.σ_pd)
-        SFIArtificialStockMarket.update_active_j_records!(model.num_predictors, agent.active_predictors, agent.active_j_records, model.t)
+        agent.active_predictors, agent.forecast, agent.chosen_j = match_predictors(agent.id, model.num_predictors, agent.predictors, model.state_vector, agent.predict_acc, agent.fitness_j, model.σ_pd)
+        update_active_j_records!(model.num_predictors, agent.active_predictors, agent.active_j_records, model.t)
     end
 
     # Collect demands of all individual agents and return aggregate forecast matrix `expected_xi`
@@ -134,7 +129,6 @@ function model_step!(model)
             if (imbalance <= model.min_excess && imbalance >= -model.min_excess)
                 break
             end
-
             # update price
             if slope_total != 0
                 trial_price -= imbalance / slope_total
@@ -155,7 +149,7 @@ function model_step!(model)
 
         for agent in scheduled_agents
             slope = 0.0
-            agent.demand_xi, slope = SFIArtificialStockMarket.get_demand_slope(a[agent.id], b[agent.id], σ_i[agent.id], trial_price, dt, model.r, model.λ, agent.relative_holdings,
+            agent.demand_xi, slope = get_demand_slope(a[agent.id], b[agent.id], σ_i[agent.id], trial_price, dt, model.r, model.λ, agent.relative_holdings,
                 model.trade_restriction, model.cash_restriction, model.short_restriction, agent.relative_cash)
             slope_total += slope
             if agent.demand_xi > 0.0
@@ -170,7 +164,6 @@ function model_step!(model)
         bid_frac = (bid_total > 0.0 ? volume / bid_total : 0.0)
         ask_frac = (ask_total > 0.0 ? volume / ask_total : 0.0)
     end
-
     clearing_price = trial_price
 
     # Complete trades 
@@ -182,7 +175,6 @@ function model_step!(model)
             agent.relative_holdings += agent.demand_xi * ask_frac
             agent.relative_cash -= agent.demand_xi * ask_frac * clearing_price
         end
-
         agent.relative_wealth = agent.relative_cash + clearing_price * agent.relative_holdings
     end
 
@@ -194,19 +186,19 @@ function model_step!(model)
     model.trading_volume = volume
 
     # Update historical volatility
-    model.volatility = SFIArtificialStockMarket.update_volatility(model.price)
+    model.volatility = update_volatility(model.price)
 
     # Update agent forecasting metrics
     if model.t > model.τ
         for agent in scheduled_agents
-            SFIArtificialStockMarket.update_predict_acc!(agent, model.τ, model.price, model.dividend)
+            update_predict_acc!(agent, model.τ, model.price, model.dividend)
         end
     end
 
     # Each individual agent checks to see if they are to be selected for GA 
     for agent in scheduled_agents
         # Check recombination status, undergo GA if true
-        if model.t > model.τ && rand() < (1 / model.k)
+        if model.t > model.τ && rand() < (1 / model.k) && model.t < model.warm_up_t
             # Begin GA
             for i = 1:length(agent.predict_acc)
                 # Update variance estimate of each predictor `σ_j` to its current active value `predict_acc`
@@ -234,18 +226,18 @@ function model_step!(model)
             # Construct vector for elite predictors
             elite_j = setdiff(1:100, eliminated_j)
 
-            # Make 20 new predictors using GA procedure as `replacement_j`
+            # Prepare vector for new replacement predictors
             replacement_j = Vector{Any}(undef, 0)
 
             # Invoke one of the two possible GA procedures
             if rand() ≤ model.pGAcrossover
                 for i = 1:model.num_elimination
-                    crossed_j = SFIArtificialStockMarket.GA_crossover(elite_j, df_GA, agent.active_j_records)
+                    crossed_j = GA_crossover(elite_j, df_GA, agent.active_j_records)
                     replacement_j = push!(replacement_j, crossed_j)
                 end
             else
                 for i = 1:model.num_elimination
-                    mutated_j = SFIArtificialStockMarket.GA_mutation(elite_j, df_GA, model.pcond_mut, model.a_min, model.a_max, model.b_min, model.b_max, model.pparam_mut_long, model.pparam_mut_short,
+                    mutated_j = GA_mutation(elite_j, df_GA, model.pcond_mut, model.a_min, model.a_max, model.b_min, model.b_max, model.pparam_mut_long, model.pparam_mut_short,
                         model.percent_mut_short)
                     replacement_j = push!(replacement_j, mutated_j)
                 end
@@ -299,7 +291,7 @@ function model_step!(model)
                         set_bit = findfirst(!ismissing, agent.predictors[i][4:15])
                         agent.predictors[i][3+set_bit] = missing # change "set" bit position in condition statement to missing
                     end
-                    # `fitness_j`` of predictor reset to median value
+                    # `fitness_j` of predictor reset to median value
                     agent.fitness_j[i] = median(agent.fitness_j)
                 end
             end
@@ -313,7 +305,7 @@ function model_step!(model)
         model.frac_bits_fund = 0.0
         model.frac_bits_tech = 0.0
         for agent in scheduled_agents
-            model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = SFIArtificialStockMarket.update_frac_bits(agent.predictors)
+            model.frac_bits_set, model.frac_bits_fund, model.frac_bits_tech = update_frac_bits(agent.predictors)
         end
         # Average over all rules and agents
         model.frac_bits_set = model.frac_bits_set / (model.num_predictors * 12 * model.num_agents) # 12 total bits in predictor
@@ -324,7 +316,6 @@ function model_step!(model)
     # Update mdf collection variables
     model.mdf_price = clearing_price
     model.mdf_dividend = last(model.dividend)
-
 
     # Simulation progress tracking print messages
     if model.t % 10000 == 0

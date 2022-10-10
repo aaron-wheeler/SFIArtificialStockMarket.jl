@@ -15,6 +15,7 @@ Base.@kwdef mutable struct ModelProperties
     volatility::Float64 = 0.0
     initialization_t::Int = 499
     generalization_t::Int = 4000
+    warm_up_t::Int
     k::Int
     pGAcrossover::Float64
     τ::Int

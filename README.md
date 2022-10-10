@@ -1,5 +1,5 @@
 # SFIArtificialStockMarket
-[![Runtests](https://github.com/aaron-wheeler/SFIArtificialStockMarket.jl/actions/workflows/Runtests.yml/badge.svg)](https://github.com/aaron-wheeler/SFIArtificialStockMarket.jl/actions/workflows/Runtests.yml)
+[![Tests](https://github.com/aaron-wheeler/SFIArtificialStockMarket.jl/actions/workflows/Runtests.yml/badge.svg)](https://github.com/aaron-wheeler/SFIArtificialStockMarket.jl/actions/workflows/Runtests.yml)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://aaron-wheeler.github.io/SFIArtificialStockMarket.jl/dev/)
 
 `SFIArtificialStockMarket.jl` is a [Julia package](https://docs.julialang.org/en/v1/stdlib/Pkg/) that implements the Sante Fe Institute Artificial Stock Market by Arthur et al.:
