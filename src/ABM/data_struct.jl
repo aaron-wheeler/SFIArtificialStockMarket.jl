@@ -5,7 +5,7 @@ Please use `ABM/README.md` as a reference for what each field of this struct doe
 """
 Base.@kwdef mutable struct ModelProperties
     num_agents::Int
-    λ::Float64 = 0.5
+    λ::Float64
     num_predictors::Int = 100
     t::Int = 1
     state_vector::Vector{Int} = Vector{Int}(undef, 12)
@@ -45,6 +45,7 @@ Base.@kwdef mutable struct ModelProperties
     percent_mut_short::Float64 = 0.05
     mdf_price::Float64 = 0.0
     mdf_dividend::Float64 = 0.0
+    print_progress::Bool
     track_bits::Bool
     frac_bits_set::Float64 = 0.0
     frac_bits_fund::Float64 = 0.0

@@ -318,8 +318,8 @@ function model_step!(model)
     model.mdf_dividend = last(model.dividend)
 
     # Simulation progress tracking print messages
-    if model.t % 10000 == 0
-        println(model.t)
+    if model.t % 10000 == 0 && model.print_progress == true
+        println("$(model.t) time steps passed")
     end
 
     # Increment time step

@@ -2,7 +2,6 @@ using Agents
 using Distributions
 using Random
 using StatsBase
-using ForwardDiff
 using DataFrames
 using StaticArrays
 using Statistics

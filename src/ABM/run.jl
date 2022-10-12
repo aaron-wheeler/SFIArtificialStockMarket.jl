@@ -26,7 +26,6 @@ using CSV
 
 # Load packages (for serial computing)
 using Agents
-using Statistics
 using Random
 
 # # Load model libraries on workers (for parallel computing)
@@ -43,7 +42,7 @@ include("SFI_model.jl")
 """
 Create model, let it run, and collect data
 """
-function SFI_run(N_agents, warm_up_t, SS_t; save_to_disk=false)
+function SFI_run(N_agents, risk_tol, warm_up_t, SS_t, k, horizon; save_to_disk=false, print_msg=false)
     # Number of model ensembles to run and their random seeds
     num_model_ensembles = 1
     seeds = rand(UInt32, num_model_ensembles)
@@ -51,10 +50,12 @@ function SFI_run(N_agents, warm_up_t, SS_t; save_to_disk=false)
     # Setup parameters
     properties = (
         num_agents = N_agents,
+        λ = risk_tol,
         warm_up_t = warm_up_t,
-        k = 250,
+        k = k,
         pGAcrossover = 0.1,
-        τ = 75,
+        τ = horizon,
+        print_progress = print_msg,
         track_bits = false
     )
 
